@@ -179,14 +179,14 @@ valid_seasons = ['2016-17', '2015-16', '2014-15', '2013-14', '2012-13', '2011-12
 
 current_season = '2016-17'
 
-nba_home = '/home/ec2-user/work/nba_/'
-data_folder = '/home/ec2-user/work/data/'
-log_folder = '/home/ec2-user/work/log/'
+nba_home = '/home/ec2-user/work/nba/'
+data_folder = '/home/ec2-user/work/nba/data/'
+log_folder = '/home/ec2-user/work/nba.log/'
 
 # Database
 #==============================================================================
-conn = pg.connect(database="nba_", user="ictsh", password="gyerli", host="aws-srv-1", port="5432")
-engine = create_engine('postgresql://ictsh:gyerli@aws-srv-1:5432/nba_')
+conn = pg.connect(database="nba", user="ictsh", password="gyerli", host="aws-srv-1", port="5432")
+engine = create_engine('postgresql://ictsh:gyerli@aws-srv-1:5432/nba')
 
 # Logger
 #==============================================================================
