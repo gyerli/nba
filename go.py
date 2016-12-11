@@ -288,6 +288,7 @@ def main():
                                                                                 p.player_id))
                         c.start_log(run_id=g_run_id, node='player', node_key=p.player_id, parent_key=g.home_team_id,
                                     node_status='IN PROGRESS')
+                        print p.player_id
                         if p.player_id == '201142':
                             raise Exception(
                                 'Debugging game completion. {0} {1} {2}'.format(g.gamecode, g.home_team_id,
