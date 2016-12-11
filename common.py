@@ -57,10 +57,10 @@ def end_run(run_id, status):
 
 def start_log(run_id, node, node_key, parent_key, node_status):
     sql = "INSERT INTO job.run_log " \
-          "(run_id,node,node_key,parent_key,node_status,season,season_type,started_dtm) " \
+          "(run_id,node,node_key,parent_key,node_status,group_status,season,season_type,started_dtm) " \
           "VALUES " \
           "({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}')".format(
-          run_id
+        run_id
         , node
         , node_key
         , parent_key
@@ -78,13 +78,14 @@ def start_log(run_id, node, node_key, parent_key, node_status):
 def end_log(run_id, node, key, status, group_status):
     sql = "UPDATE job.run_log " \
           "  SET  node_status = '{0}' " \
-          "       group_status = '{1}' " \
+          "      ,group_status = '{1}' " \
           "      ,end_dtm = '{2}' " \
           " WHERE run_id = {3} " \
           "   AND node = '{4}' " \
           "   AND node_key = '{5}' " \
           "   AND season = '{6}' " \
-          "   AND season_type = '{7}' ".format(status, group_status, datetime.datetime.now(), run_id, node, key, g_season,
+          "   AND season_type = '{7}' ".format(status, group_status, datetime.datetime.now(), run_id, node, key,
+                                               g_season,
                                                g_season_type)
 
     cur = conn.cursor()
