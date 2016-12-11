@@ -288,7 +288,12 @@ def main():
                                                                                 p.player_id))
                         c.start_log(run_id=g_run_id, node='player', node_key=p.player_id, parent_key=g.home_team_id,
                                     node_status='IN PROGRESS')
-
+                        if g.gamecode == '20161025/SASGSW' and \
+                                        g.home_team_id == '1610612744' and \
+                                        p.player_id == '201142':
+                            raise Exception(
+                                'Debugging game completion. {0} {1} {2}'.format(g.gamecode, h.home_team_id,
+                                                                                p.player_name))
                         player_measure_count = process_player(player_id=p.player_id)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='COMPLETED')
