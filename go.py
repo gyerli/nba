@@ -66,6 +66,9 @@ def update_schedule():
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
         start_dt = last_game_dt + datetime.timedelta(days=1)
+        if start_dt > g_season_end_date:
+            c.log.info('seems like we already pulled all the game dates')
+            start_dt = g_season_end_date
         end_dt = g_season_end_date
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))

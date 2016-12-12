@@ -119,7 +119,9 @@ def get_measures(node):
     sql = "SELECT node, endpoint, measure, table_name, active, measure_type, " \
           "       measure_category, comments, available_year, pk, measure_scope " \
           "  FROM job.node " \
-          " WHERE node = '{0}' ".format(node)
+          " WHERE node = '{0}' " \
+          "   AND active = True " \
+          " ORDER BY endpoint, measure, table_name".format(node)
 
     cur.execute(sql)
     return cur
