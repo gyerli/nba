@@ -290,8 +290,7 @@ def main():
                                     node_status='IN PROGRESS')
 
                         player_measure_count = process_player(player_id=p.player_id)
-                        if p.player_id == '201142':
-                            raise Exception('Debugging game completion')
+                        if p.player_id == 201142:  raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='COMPLETED')
