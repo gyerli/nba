@@ -1,6 +1,7 @@
 import sys
 import nba_py
 import datetime
+import time
 import argparse
 import inspect
 import sqlparse
@@ -31,7 +32,7 @@ def update_schedule():
 
     cur = c.conn.cursor()
 
-    # find if any game processed for this season
+    # find if any game processed and finished for this season
     sql = "SELECT " \
           "  MAX(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
           "FROM lnd.schedule_game_header " \
@@ -39,44 +40,62 @@ def update_schedule():
           "  AND _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
-    try:
-        cur.execute(sql)
-        last_processed_game_dt = cur.fetchone()[0]
-        if last_processed_game_dt is not None:
-            c.log.info('found processed games for this season')
-            c.log.info('last processed schedule date: {0}'.format(
-                last_processed_game_dt.strftime("%Y-%m-%d")))
-            start_dt = last_processed_game_dt + datetime.timedelta(days=1)
-            end_dt = datetime.date.today()
-            # remove below after testing
-            end_dt = datetime.date(2016, 10, 26)
+    cur.execute(sql)
+    last_processed_game_dt = cur.fetchone()[0]
 
-        c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
-        c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
+    # find if any game processed for this season even it is not finished
+    sql = "SELECT " \
+          "  MAX(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
+          "FROM lnd.schedule_game_header " \
+          "WHERE _season = '{0}' " \
+          "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
-        while start_dt <= end_dt:
-            c.log.info('getting games for the date => {0}'.format(start_dt.strftime("%Y%m%d")))
-            measures = c.get_measures('schedule')
-            for measure in measures.fetchall():
-                m = c.reg(measures, measure)
-                c.log.debug('running schedule endpoint => {0}, measure => {1}'.format(
-                    m.endpoint, m.measure))
-                try:
-                    endpoint = getattr(nba_py, m.endpoint)(year=start_dt.year, month=start_dt.month, day=start_dt.day)
-                    df = getattr(endpoint, m.measure)()
-                    s_params = {'table_name': m.table_name}
-                    c.s_to_sql(df, s_params)
-                except Exception, e:
-                    c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-                    c.log.error(e)
-                    raise
+    cur.execute(sql)
+    last_game_dt = cur.fetchone()[0]
+ 
 
-            start_dt += datetime.timedelta(days=1)
-        c.refresh_mviews()
+    if last_processed_game_dt is not None:
+        c.log.info('found processed games for this season')
+        c.log.info('last processed schedule date: {0}'.format(
+            last_processed_game_dt.strftime("%Y-%m-%d")))
+        start_dt = last_processed_game_dt + datetime.timedelta(days=1)
+        end_dt = datetime.date.today()
+        # remove below after testing
+        #end_dt = datetime.date(2016, 10, 26)
+    if g_schedule:
+        c.log.info('full schedule requested')
+        c.log.info('getting all dates until the end of season')
+        start_dt = last_game_dt + datetime.timedelta(days=1)
+        end_dt = g_season_end_date
 
-    except Exception, e:
-        c.log.info(e)
-        raise
+    c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
+    c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
+
+    while start_dt <= end_dt:
+        c.log.info('getting games for the date => {0}'.format(start_dt.strftime("%Y%m%d")))
+        c.start_log(run_id=g_run_id, node='schedule', node_name=start_dt.strftime("%Y%m%d"), 
+                    node_key=start_dt.strftime("%Y%m%d"), parent_key=None, node_status='IN PROGRESS')
+
+        measures = c.get_measures('schedule')
+        for measure in measures.fetchall():
+            m = c.reg(measures, measure)
+            c.log.debug('running schedule endpoint => {0}, measure => {1}'.format(
+                m.endpoint, m.measure))
+            try:
+                endpoint = getattr(nba_py, m.endpoint)(year=start_dt.year, month=start_dt.month, day=start_dt.day)
+                df = getattr(endpoint, m.measure)()
+                s_params = {'table_name': m.table_name}
+                c.s_to_sql(df, s_params)
+            except (Exception, KeyboardInterrupt):
+                c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
+                c.log.error(sys.exc_info()[0])
+                c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED', group_status='N/A')
+                raise Exception('Error processing schedule: {0}'.format(start_dt.strftime("%Y%m%d")))
+
+        c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='COMPLETED', group_status='N/A')
+
+        start_dt += datetime.timedelta(days=1)
+    c.refresh_mviews()
 
 
 def refresh_team_roster_coaches():
@@ -105,7 +124,7 @@ def refresh_team_roster_coaches():
 
 
 def get_games():
-    c.log.info('getting games to be processed')
+    c.log.info('getting games to be processed which has never been processed')
 
     sql = "SELECT " \
           " g.game_date_est " \
@@ -136,7 +155,7 @@ def process_game(game_id):
     # if the game processed and completed do not re-pull the data
     # but if the game stats are done but teams and players might not be done
     if get_game_status(game_id=game_id) > 0:
-        c.log.info('This game''s stats completed before {0}'.format(game_id))
+        c.log.info('This game''s {0} stats completed before'.format(game_id))
         return 0
 
     _measures = c.get_measures('game')
@@ -145,15 +164,14 @@ def process_game(game_id):
         c.log.debug('running game endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
         g_params = {'game_id': game_id, 'table_name': m.table_name}
         try:
-            pass
             endpoint = getattr(_game, m.endpoint)(game_id=game_id)
             # if m.measure == 'season_series':
             #     raise Exception('Debugging exceptions "season series"')
             df = getattr(endpoint, m.measure)()
             c.g_to_sql(df, g_params)
-        except Exception, e:
+        except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(e)
+            c.log.error(sys.exc_info()[0])
             raise Exception('Error processing game: {0}'.format(game_id))
     return _measures.rowcount
 
@@ -202,9 +220,9 @@ def process_team(team_id):
             # df = getattr(endpoint, m.measure)()
             # t_params = {'team_id': team_id, 'table_name': m.table_name}
             # c.t_to_sql(df, t_params)
-        except Exception, e:
+        except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(e)
+            c.log.error(sys.exc_info()[0])
             raise Exception('Error processing team: {0}'.format(team_id))
 
     return _measures.rowcount
@@ -232,9 +250,9 @@ def process_player(player_id):
             # p_params = {'player_id': player_id, 'team_id': m.task_team, 'table_name': m.table_name}
             # c.p_to_sql(df, p_params)
 
-        except Exception, e:
+        except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(e)
+            c.log.error(sys.exc_info()[0])
             raise Exception('Error processing player: {0}'.format(player_id))
 
     return _measures.rowcount
@@ -254,16 +272,21 @@ def main():
     global g_season_end_date
     global g_is_current_season
     global g_run_id
+    global g_debug
+    global g_schedule
 
     parser = argparse.ArgumentParser(description='Executes job and job details')
     parser.add_argument('-s', '--season', help='NBA season (e.g. 2014-15)', required=False, default=c.current_season)
     parser.add_argument('-t', '--season_type', help='Season type (R=>Regular Season, P=>Playoffs)', default='R')
-    parser.add_argument('-e', '--schedule', help='Update schedule', action='store_true')
+    parser.add_argument('-f', '--schedule', help='Update full schedule', action='store_true')
     parser.add_argument('-r', '--roster', help='Refresh team roster and coaches', action='store_true')
+    parser.add_argument('-d', '--debug', help='Debugging flag', action='store_true')
 
     args = vars(parser.parse_args())
 
     g_season = args['season']
+    g_debug = args['debug']
+    g_schedule = args['schedule']
 
     if args['season_type'] == 'P':
         g_season_type = _constants.SeasonType.Playoffs
@@ -287,10 +310,11 @@ def main():
         g_season_start_date.strftime("%Y-%m-%d"),
         g_season_end_date.strftime("%Y-%m-%d")))
 
-    update_schedule()
-    if args['roster']: refresh_team_roster_coaches()
-
     g_run_id = c.start_run()
+
+    update_schedule()
+
+    if args['roster']: refresh_team_roster_coaches()
 
     games = get_games()
     for game in games.fetchall():
@@ -311,6 +335,9 @@ def main():
                 c.start_log(run_id=g_run_id, node='team', node_name=g.home_team_id, node_key=g.home_team_id, 
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
+                # if g.home_team_id  == 1610612757:
+                #     raise Exception('Debugging team completion')
+
                 home_team_measure_count = process_team(g.home_team_id)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='COMPLETED',
                           group_status='N/A')
@@ -325,24 +352,25 @@ def main():
                                     parent_key=g.home_team_id, node_status='IN PROGRESS')
 
                         player_measure_count = process_player(player_id=p.player_id)
-                        if p.player_id == 201142:
-                            raise Exception('Debugging game completion')
+                        # if p.player_id == 201142:
+                        #     raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A')
+                        if g_debug: time.sleep(0.25)
 
-                except Exception, e:  # this is home team players' exception
+                except (Exception, KeyboardInterrupt):  # this is home team players' exception
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                    c.log.error(e)
+                    c.log.error(sys.exc_info()[0])
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                     # here we need to fail both team and game (only group status=FAILED)
                     c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
                     c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                     raise Exception('Error processing player')
 
-            except Exception, e:  # this is home team exception
+            except (Exception, KeyboardInterrupt):  # this is home team exception
                 c.log.error('error processing home team:{0}'.format(g.home_team_id))
-                c.log.error(e)
+                c.log.error(sys.exc_info()[0])
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='FAILED', group_status='N/A')
@@ -371,19 +399,20 @@ def main():
                         player_measure_count = process_player(player_id=p.player_id)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A')
+                        if g_debug: time.sleep(0.25)
 
-                except Exception, e:  # this is visitor team players' exception
+                except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                    c.log.error(e)
+                    c.log.error(sys.exc_info()[0])
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                     # here we need to fail both team and game (only group status=FAILED)
                     c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
                     c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                     raise Exception('Error processing player')
 
-            except Exception, e:  # this is visitor team exception
+            except (Exception, KeyboardInterrupt):  # this is visitor team exception
                 c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
-                c.log.error(e)
+                c.log.error(sys.exc_info()[0])
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='FAILED', group_status='N/A')
@@ -392,9 +421,9 @@ def main():
 
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='COMPLETED')
             #  at this point all the teams and players processed so game group_status can be updated as completed
-        except Exception, e:  # this is game exception
+        except (Exception, KeyboardInterrupt):  # this is game exception
             c.log.error('error processing game:{0}'.format(g.gamecode))
-            c.log.error(e)
+            c.log.error(sys.exc_info()[0])
             c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
             # we don't need to end_log for the game. it is already been handeled in team and player exceptions
             # c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='FAILED', group_status='FAILED')
