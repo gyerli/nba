@@ -154,7 +154,23 @@ def process_game(game_id):
     return _measures.rowcount
 
 
+def get_node_status(node, node_key):
+    sql = "SELECT 1 " \
+          "  FROM job.run_log " \
+          " WHERE node = '{0}' " \
+          "   AND node_key = '{1}' " \
+          "   AND run_id = '{2}' " \
+          "   AND node_status = 'COMPLETED' ".format(node, node_key, g_run_id)
+
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    return cur.rowcount > 0
+
+
 def process_team(team_id):
+    if get_node_status('team', team_id):
+        c.log.info('This team is refreshed in this session {0}'.format(team_id))
+        return 0
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
@@ -179,6 +195,9 @@ def process_team(team_id):
 
 
 def process_player(player_id):
+    if get_node_status('player', player_id):
+        c.log.info('This player is refreshed in this session {0}'.format(player_id))
+        return 0
     _measures = c.get_measures('player')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
@@ -290,7 +309,8 @@ def main():
                                     node_status='IN PROGRESS')
 
                         player_measure_count = process_player(player_id=p.player_id)
-                        if p.player_id == 201142:  raise Exception('Debugging game completion')
+                        if p.player_id == 201142:
+                            raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='COMPLETED')
