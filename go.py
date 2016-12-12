@@ -410,7 +410,7 @@ def main():
 
                     try:  # this is visitor team players' try
                         player_measure_count = process_player(player_id=p.player_id,team_id=g.home_team_id)
-                        c.log.info('total {0} measures processed'.format(player_measure_count))
+                        c.log.debug('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A', cnt=player_measure_count)
                         if g_debug:

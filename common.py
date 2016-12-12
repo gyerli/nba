@@ -83,7 +83,7 @@ def end_log(run_id, node, key, status, group_status, cnt):
               "  SET  node_status = '{0}' " \
               "      ,group_status = '{1}' " \
               "      ,end_dtm = '{2}' " \
-              "      ,measure_cnt = '{3}' " \
+              "      ,measure_count = {3} " \
               " WHERE run_id = {4} " \
               "   AND node = '{5}' " \
               "   AND node_key = '{6}' ".format(status, group_status, datetime.datetime.now(), cnt, run_id, node, key)
@@ -91,7 +91,7 @@ def end_log(run_id, node, key, status, group_status, cnt):
         sql = "UPDATE job.run_log " \
               "  SET  group_status = '{0}' " \
               "      ,end_dtm = '{1}' " \
-              "      ,measure_cnt = '{2}' " \
+              "      ,measure_count = {2} " \
               " WHERE run_id = {3} " \
               "   AND node = '{4}' " \
               "   AND node_key = '{5}' ".format(group_status, datetime.datetime.now(), cnt, run_id, node, key)
