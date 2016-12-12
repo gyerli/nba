@@ -45,7 +45,8 @@ def end_run(run_id, status):
             sql = "UPDATE job.run_log " \
                   "   SET node_status = 'FAILED', " \
                   "       end_dtm = '{0}' " \
-                  " WHERE run_id = {1} ".format(datetime.datetime.now(), run_id)
+                  " WHERE run_id = {1} " \
+                  "   AND node <> 'game' ".format(datetime.datetime.now(), run_id)
             log.debug(sql)
             cur.execute(sql)
             conn.commit()
