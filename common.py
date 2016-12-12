@@ -191,6 +191,13 @@ def refresh_mviews():
     conn.commit()
 
 
+def get_team_abbrv(team_id):
+    sql = "SELECT DISTINCT abbreviation, FROM lnd.team WHERE team_id = {0}".format(team_id)
+    cur = conn.cursor()
+    cur.execute(sql)
+    return cur.fetchone()[0]
+
+
 valid_seasons = ['2016-17', '2015-16', '2014-15', '2013-14', '2012-13', '2011-12', '2010-11', '2009-10', '2008-09',
                  '2007-08', '2006-07', '2005-06']
 
