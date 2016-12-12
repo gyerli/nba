@@ -63,7 +63,7 @@ def start_log(run_id, node, node_name, node_key, parent_key, node_status):
           "({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}')".format(
         run_id
         , node
-        , str(node_name).replace("'","''")
+        , str(node_name).replace("'", "''")
         , node_key
         , parent_key
         , node_status
@@ -93,7 +93,6 @@ def end_log(run_id, node, key, status, group_status):
               " WHERE run_id = {2} " \
               "   AND node = '{3}' " \
               "   AND node_key = '{4}' ".format(group_status, datetime.datetime.now(), run_id, node, key)
-
 
     cur = conn.cursor()
     cur.execute(sql)

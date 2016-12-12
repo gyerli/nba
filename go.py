@@ -52,7 +52,6 @@ def update_schedule():
 
     cur.execute(sql)
     last_game_dt = cur.fetchone()[0]
- 
 
     if last_processed_game_dt is not None:
         c.log.info('found processed games for this season')
@@ -61,7 +60,7 @@ def update_schedule():
         start_dt = last_processed_game_dt + datetime.timedelta(days=1)
         end_dt = datetime.date.today()
         # remove below after testing
-        #end_dt = datetime.date(2016, 10, 26)
+        # end_dt = datetime.date(2016, 10, 26)
     if g_schedule:
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
@@ -73,7 +72,7 @@ def update_schedule():
 
     while start_dt <= end_dt:
         c.log.info('getting games for the date => {0}'.format(start_dt.strftime("%Y%m%d")))
-        c.start_log(run_id=g_run_id, node='schedule', node_name=start_dt.strftime("%Y%m%d"), 
+        c.start_log(run_id=g_run_id, node='schedule', node_name=start_dt.strftime("%Y%m%d"),
                     node_key=start_dt.strftime("%Y%m%d"), parent_key=None, node_status='IN PROGRESS')
 
         measures = c.get_measures('schedule')
@@ -89,10 +88,12 @@ def update_schedule():
             except (Exception, KeyboardInterrupt):
                 c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
                 c.log.error(sys.exc_info()[0])
-                c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED', group_status='N/A')
+                c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED',
+                          group_status='N/A')
                 raise Exception('Error processing schedule: {0}'.format(start_dt.strftime("%Y%m%d")))
 
-        c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='COMPLETED', group_status='N/A')
+        c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='COMPLETED',
+                  group_status='N/A')
 
         start_dt += datetime.timedelta(days=1)
     c.refresh_mviews()
@@ -211,15 +212,14 @@ def process_team(team_id):
         c.log.debug('running team endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
 
         try:
-            pass
-            # if m.measure_type == 'self':
-            #     endpoint = getattr(_team, m.endpoint)(team_id=team_id, season=g_season, season_type=g_season_type)
-            # else:
-            #     endpoint = getattr(_team, m.endpoint)(team_id=team_id, season=g_season, season_type=g_season_type,
-            #                                           measure_type=m.measure_type)
-            # df = getattr(endpoint, m.measure)()
-            # t_params = {'team_id': team_id, 'table_name': m.table_name}
-            # c.t_to_sql(df, t_params)
+            if m.measure_type == 'self':
+                endpoint = getattr(_team, m.endpoint)(team_id=team_id, season=g_season, season_type=g_season_type)
+            else:
+                endpoint = getattr(_team, m.endpoint)(team_id=team_id, season=g_season, season_type=g_season_type,
+                                                      measure_type=m.measure_type)
+            df = getattr(endpoint, m.measure)()
+            t_params = {'team_id': team_id, 'table_name': m.table_name}
+            c.t_to_sql(df, t_params)
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
             c.log.error(sys.exc_info()[0])
@@ -238,17 +238,16 @@ def process_player(player_id):
         c.log.debug('running player endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
 
         try:
-            pass
-            # if m.measure_type == 'self' and m.measure_category == '1':
-            #     endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type)
-            # elif m.measure_type == 'self':
-            #     endpoint = getattr(_player, m.endpoint)(player_id=player_id)
-            # else:
-            #     endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type,
-            #                                             measure_type=m.measure_type)
-            # df = getattr(endpoint, m.measure)()
-            # p_params = {'player_id': player_id, 'team_id': m.task_team, 'table_name': m.table_name}
-            # c.p_to_sql(df, p_params)
+            if m.measure_type == 'self' and m.measure_category == '1':
+                endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type)
+            elif m.measure_type == 'self':
+                endpoint = getattr(_player, m.endpoint)(player_id=player_id)
+            else:
+                endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type,
+                                                        measure_type=m.measure_type)
+            df = getattr(endpoint, m.measure)()
+            p_params = {'player_id': player_id, 'team_id': m.task_team, 'table_name': m.table_name}
+            c.p_to_sql(df, p_params)
 
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
@@ -314,7 +313,8 @@ def main():
 
     update_schedule()
 
-    if args['roster']: refresh_team_roster_coaches()
+    if args['roster']:
+        refresh_team_roster_coaches()
 
     games = get_games()
     for game in games.fetchall():
@@ -322,51 +322,55 @@ def main():
         schedule_key = g.gamecode[0:8]
         c.log.info('processing game:{0}'.format(g.gamecode))
         try:  # this is game try
-            c.start_log(run_id=g_run_id, node='game', node_name=g.gamecode, node_key=g.game_id, 
+            c.start_log(run_id=g_run_id, node='game', node_name=g.gamecode, node_key=g.game_id,
                         parent_key=schedule_key, node_status='IN PROGRESS')
 
             game_measure_count = process_game(g.game_id)
+            c.log.info('total {0} measures processed'.format(game_measure_count))
 
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED',
                       group_status='IN PROGRESS')
 
             try:  # this is team try for home team
                 c.log.info('processing home team:{0}'.format(g.home_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_name=g.home_team_id, node_key=g.home_team_id, 
+                c.start_log(run_id=g_run_id, node='team', node_name=g.home_team_id, node_key=g.home_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
                 # if g.home_team_id  == 1610612757:
                 #     raise Exception('Debugging team completion')
 
                 home_team_measure_count = process_team(g.home_team_id)
+                c.log.info('total {0} measures processed'.format(home_team_measure_count))
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='COMPLETED',
                           group_status='N/A')
-                try:  # this is home team players' try
-                    c.log.info('processing home team players')
-                    players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
-                    for player in players.fetchall():
-                        p = c.reg(players, player)
-                        c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
-                                                                                p.player_id))
-                        c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id, 
-                                    parent_key=g.home_team_id, node_status='IN PROGRESS')
 
+                c.log.info('processing home team players')
+                players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
+                for player in players.fetchall():
+                    p = c.reg(players, player)
+                    c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
+                                                                            p.player_id))
+                    c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
+                                parent_key=g.home_team_id, node_status='IN PROGRESS')
+                    try:  # this is home team players' try
                         player_measure_count = process_player(player_id=p.player_id)
+                        c.log.info('total {0} measures processed'.format(player_measure_count))
                         # if p.player_id == 201142:
                         #     raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A')
-                        if g_debug: time.sleep(0.25)
+                        if g_debug:
+                            time.sleep(0.25)
 
-                except (Exception, KeyboardInterrupt):  # this is home team players' exception
-                    c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                    c.log.error(sys.exc_info()[0])
-                    c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
-                    # here we need to fail both team and game (only group status=FAILED)
-                    c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
-                    c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
-                    raise Exception('Error processing player')
+                    except (Exception, KeyboardInterrupt):  # this is home team players' exception
+                        c.log.error('error processing home team players:{0}'.format(g.home_team_id))
+                        c.log.error(sys.exc_info()[0])
+                        c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                        # here we need to fail both team and game (only group status=FAILED)
+                        c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
+                        c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
+                        raise Exception('Error processing player')
 
             except (Exception, KeyboardInterrupt):  # this is home team exception
                 c.log.error('error processing home team:{0}'.format(g.home_team_id))
@@ -379,36 +383,39 @@ def main():
 
             try:
                 c.log.info('processing visitor team:{0}'.format(g.visitor_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_name=g.visitor_team_id, node_key=g.visitor_team_id, 
+                c.start_log(run_id=g_run_id, node='team', node_name=g.visitor_team_id, node_key=g.visitor_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
                 visitor_team_measure_count = process_team(g.visitor_team_id)
+                c.log.info('total {0} measures processed'.format(visitor_team_measure_count))
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='COMPLETED',
                           group_status='N/A')
 
-                try:  # this is visitor team players' try
-                    c.log.info('processing visitor team players')
-                    players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
-                    for player in players.fetchall():
-                        p = c.reg(players, player)
-                        c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
-                                                                                p.player_id))
-                        c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id, 
-                                    parent_key=g.visitor_team_id, node_status='N/A')
+                c.log.info('processing visitor team players')
+                players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
+                for player in players.fetchall():
+                    p = c.reg(players, player)
+                    c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
+                                                                            p.player_id))
+                    c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
+                                parent_key=g.visitor_team_id, node_status='N/A')
 
+                    try:  # this is visitor team players' try
                         player_measure_count = process_player(player_id=p.player_id)
+                        c.log.info('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A')
-                        if g_debug: time.sleep(0.25)
+                        if g_debug:
+                            time.sleep(0.25)
 
-                except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
-                    c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                    c.log.error(sys.exc_info()[0])
-                    c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
-                    # here we need to fail both team and game (only group status=FAILED)
-                    c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
-                    c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
-                    raise Exception('Error processing player')
+                    except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
+                        c.log.error('error processing home team players:{0}'.format(g.home_team_id))
+                        c.log.error(sys.exc_info()[0])
+                        c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                        # here we need to fail both team and game (only group status=FAILED)
+                        c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
+                        c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
+                        raise Exception('Error processing player')
 
             except (Exception, KeyboardInterrupt):  # this is visitor team exception
                 c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
