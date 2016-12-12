@@ -119,7 +119,9 @@ def get_measures(node):
     sql = "SELECT node, endpoint, measure, table_name, active, measure_type, " \
           "       measure_category, comments, available_year, pk, measure_scope " \
           "  FROM job.node " \
-          " WHERE node = '{0}' ".format(node)
+          " WHERE node = '{0}' " \
+          "   AND active = True " \
+          " ORDER BY endpoint, measure, table_name".format(node)
 
     cur.execute(sql)
     return cur
@@ -189,6 +191,13 @@ def refresh_mviews():
     cur = conn.cursor()
     cur.execute(sql)
     conn.commit()
+
+
+def get_team_abbrv(team_id):
+    sql = "SELECT DISTINCT abbreviation, FROM lnd.team WHERE team_id = {0}".format(team_id)
+    cur = conn.cursor()
+    cur.execute(sql)
+    return cur.fetchone()[0]
 
 
 valid_seasons = ['2016-17', '2015-16', '2014-15', '2013-14', '2012-13', '2011-12', '2010-11', '2009-10', '2008-09',

@@ -68,6 +68,9 @@ def update_schedule():
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
         start_dt = last_game_dt + datetime.timedelta(days=1)
+        if start_dt > g_season_end_date:
+            c.log.info('seems like we already pulled all the game dates')
+            start_dt = g_season_end_date
         end_dt = g_season_end_date
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
@@ -92,7 +95,7 @@ def update_schedule():
                 c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
                 c.log.error(traceback.format_exc())
                 c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED',
-                          group_status='N/A',cnt=None)
+                          group_status='N/A', cnt=None)
                 raise Exception('Error processing schedule: {0}'.format(start_dt.strftime("%Y%m%d")))
 
         c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='COMPLETED',
@@ -233,7 +236,7 @@ def process_team(team_id):
     return _measures.rowcount
 
 
-def process_player(player_id,team_id):
+def process_player(player_id, team_id):
     if get_node_status('player', player_id):
         c.log.info('This player is refreshed in this session {0}'.format(player_id))
         return 0
@@ -338,8 +341,9 @@ def main():
                       group_status='IN PROGRESS', cnt=game_measure_count)
 
             try:  # this is team try for home team
-                c.log.info('processing home team:{0}'.format(g.home_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_name=g.home_team_id, node_key=g.home_team_id,
+                home_team_name = c.get_team_abbrv(g.home_team_id)
+                c.log.info('processing home team:{0} ({1})'.format(home_team_name, g.home_team_id))
+                c.start_log(run_id=g_run_id, node='team', node_name=home_team_name, node_key=g.home_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
                 # if g.home_team_id  == 1610612757:
@@ -359,7 +363,7 @@ def main():
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
                                 parent_key=g.home_team_id, node_status='IN PROGRESS')
                     try:  # this is home team players' try
-                        player_measure_count = process_player(player_id=p.player_id,team_id=g.home_team_id)
+                        player_measure_count = process_player(player_id=p.player_id, team_id=g.home_team_id)
                         c.log.debug('total {0} measures processed'.format(player_measure_count))
                         # if p.player_id == 201142:
                         #     raise Exception('Debugging game completion')
@@ -392,12 +396,13 @@ def main():
                 raise Exception('Error processing home team')
 
             try:
-                c.log.info('processing visitor team:{0}'.format(g.visitor_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_name=g.visitor_team_id, node_key=g.visitor_team_id,
+                visitor_team_name = c.get_team_abbrv(g.visitor_team_id)
+                c.log.info('processing visitor team:{0} ({1})'.format(visitor_team_name, g.visitor_team_id))
+                c.start_log(run_id=g_run_id, node='team', node_name=visitor_team_name, node_key=g.visitor_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
                 visitor_team_measure_count = process_team(g.visitor_team_id)
-                c.log.info('total {0} measures processed'.format(visitor_team_measure_count))
+                c.log.debug('total {0} measures processed'.format(visitor_team_measure_count))
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='COMPLETED',
                           group_status='N/A', cnt=visitor_team_measure_count)
 
@@ -408,10 +413,10 @@ def main():
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                             p.player_id))
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
-                                parent_key=g.visitor_team_id, node_status='N/A')
+                                parent_key=g.visitor_team_id, node_status='IN PROGRESS')
 
                     try:  # this is visitor team players' try
-                        player_measure_count = process_player(player_id=p.player_id,team_id=g.home_team_id)
+                        player_measure_count = process_player(player_id=p.player_id, team_id=g.home_team_id)
                         c.log.debug('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A', cnt=player_measure_count)
