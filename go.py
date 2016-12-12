@@ -388,6 +388,7 @@ def main():
             c.log.error('error processing game:{0}'.format(g.gamecode))
             c.log.error(e)
             c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+            c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='FAILED')
             c.end_run(g_run_id, 'FAILED')
             sys.exit(1)
     c.end_run(g_run_id, 'COMPLETED')
