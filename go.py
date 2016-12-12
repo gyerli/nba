@@ -26,6 +26,7 @@ def get_players_from_game(game_id, team_id):
 
 
 def update_schedule():
+    c.log.info('############################## updating schedule #################################################')
     start_dt = g_season_start_date
     end_dt = g_season_end_date
 
@@ -95,7 +96,9 @@ def update_schedule():
                   group_status='N/A')
 
         start_dt += datetime.timedelta(days=1)
+    c.log.info('updating materialized views')
     c.refresh_mviews()
+    c.log.info('------------------------------ completed schedule -------------------------------------------------')
 
 
 def refresh_team_roster_coaches():
@@ -315,6 +318,7 @@ def main():
     if args['roster']:
         refresh_team_roster_coaches()
 
+    c.log.info('############################## starting games ####################################################')
     games = get_games()
     for game in games.fetchall():
         g = c.reg(games, game)
