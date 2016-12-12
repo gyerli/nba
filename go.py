@@ -4,6 +4,7 @@ import datetime
 import time
 import argparse
 import inspect
+import traceback
 
 from nba_py import player as _player
 from nba_py import constants as _constants
@@ -87,7 +88,7 @@ def update_schedule():
                 c.s_to_sql(df, s_params)
             except (Exception, KeyboardInterrupt):
                 c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-                c.log.error(sys.exc_info()[0])
+                c.log.error(traceback.format_exc())
                 c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED',
                           group_status='N/A')
                 raise Exception('Error processing schedule: {0}'.format(start_dt.strftime("%Y%m%d")))
@@ -174,7 +175,7 @@ def process_game(game_id):
             c.g_to_sql(df, g_params)
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(sys.exc_info()[0])
+            c.log.error(traceback.format_exc())
             raise Exception('Error processing game: {0}'.format(game_id))
     return _measures.rowcount
 
@@ -224,13 +225,13 @@ def process_team(team_id):
             c.t_to_sql(df, t_params)
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(sys.exc_info()[0])
+            c.log.error(traceback.format_exc())
             raise Exception('Error processing team: {0}'.format(team_id))
 
     return _measures.rowcount
 
 
-def process_player(player_id):
+def process_player(player_id,team_id):
     if get_node_status('player', player_id):
         c.log.info('This player is refreshed in this session {0}'.format(player_id))
         return 0
@@ -248,12 +249,12 @@ def process_player(player_id):
                 endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type,
                                                         measure_type=m.measure_type)
             df = getattr(endpoint, m.measure)()
-            p_params = {'player_id': player_id, 'team_id': m.task_team, 'table_name': m.table_name}
+            p_params = {'player_id': player_id, 'team_id': team_id, 'table_name': m.table_name}
             c.p_to_sql(df, p_params)
 
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(sys.exc_info()[0])
+            c.log.error(traceback.format_exc())
             raise Exception('Error processing player: {0}'.format(player_id))
 
     return _measures.rowcount
@@ -356,7 +357,7 @@ def main():
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
                                 parent_key=g.home_team_id, node_status='IN PROGRESS')
                     try:  # this is home team players' try
-                        player_measure_count = process_player(player_id=p.player_id)
+                        player_measure_count = process_player(player_id=p.player_id,team_id=g.home_team_id)
                         c.log.info('total {0} measures processed'.format(player_measure_count))
                         # if p.player_id == 201142:
                         #     raise Exception('Debugging game completion')
@@ -368,7 +369,7 @@ def main():
 
                     except (Exception, KeyboardInterrupt):  # this is home team players' exception
                         c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                        c.log.error(sys.exc_info()[0])
+                        c.log.error(traceback.format_exc())
                         c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                         # here we need to fail both team and game (only group status=FAILED)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
@@ -377,7 +378,7 @@ def main():
 
             except (Exception, KeyboardInterrupt):  # this is home team exception
                 c.log.error('error processing home team:{0}'.format(g.home_team_id))
-                c.log.error(sys.exc_info()[0])
+                c.log.error(traceback.format_exc())
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='FAILED', group_status='N/A')
@@ -404,7 +405,7 @@ def main():
                                 parent_key=g.visitor_team_id, node_status='N/A')
 
                     try:  # this is visitor team players' try
-                        player_measure_count = process_player(player_id=p.player_id)
+                        player_measure_count = process_player(player_id=p.player_id,team_id=g.home_team_id)
                         c.log.info('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A')
@@ -413,7 +414,7 @@ def main():
 
                     except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
                         c.log.error('error processing home team players:{0}'.format(g.home_team_id))
-                        c.log.error(sys.exc_info()[0])
+                        c.log.error(traceback.format_exc())
                         c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                         # here we need to fail both team and game (only group status=FAILED)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
@@ -422,7 +423,7 @@ def main():
 
             except (Exception, KeyboardInterrupt):  # this is visitor team exception
                 c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
-                c.log.error(sys.exc_info()[0])
+                c.log.error(traceback.format_exc())
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='FAILED', group_status='N/A')
@@ -433,7 +434,7 @@ def main():
             #  at this point all the teams and players processed so game group_status can be updated as completed
         except (Exception, KeyboardInterrupt):  # this is game exception
             c.log.error('error processing game:{0}'.format(g.gamecode))
-            c.log.error(sys.exc_info()[0])
+            c.log.error(traceback.format_exc())
             c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
             # we don't need to end_log for the game. it is already been handeled in team and player exceptions
             # c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='FAILED', group_status='FAILED')
