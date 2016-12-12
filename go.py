@@ -135,6 +135,10 @@ def process_game(game_id):
     # game stats need to be processed only once
     # if the game processed and completed do not re-pull the data
     # but if the game stats are done but teams and players might not be done
+    if get_game_status(game_id=game_id) > 0:
+        c.log.info('This game''s stats completed before {0}'.format(game_id))
+        return 0
+
     _measures = c.get_measures('game')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
@@ -152,6 +156,18 @@ def process_game(game_id):
             c.log.error(e)
             raise Exception('Error processing game: {0}'.format(game_id))
     return _measures.rowcount
+
+
+def get_game_status(game_id):
+    sql = "SELECT 1 " \
+          "  FROM job.run_log " \
+          " WHERE node = 'game' " \
+          "   AND node_key = '{0}' " \
+          "   AND node_status = 'COMPLETED' ".format(game_id)
+
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    return cur.rowcount > 0
 
 
 def get_node_status(node, node_key):
@@ -290,14 +306,14 @@ def main():
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED',
                       group_status='IN PROGRESS')
 
-            try:  # this is team try for both home and visitor teams
+            try:  # this is team try for home team
                 c.log.info('processing home team:{0}'.format(g.home_team_id))
                 c.start_log(run_id=g_run_id, node='team', node_key=g.home_team_id, parent_key=g.game_id,
                             node_status='IN PROGRESS')
 
                 home_team_measure_count = process_team(g.home_team_id)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='COMPLETED',
-                          group_status='COMPLETED')
+                          group_status='N/A')
                 try:  # this is home team players' try
                     c.log.info('processing home team players')
                     players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
@@ -313,21 +329,30 @@ def main():
                             raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
-                                  group_status='COMPLETED')
+                                  group_status='N/A')
 
                 except Exception, e:  # this is home team players' exception
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
                     c.log.error(e)
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                    c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
                     raise Exception('Error processing player')
 
+            except Exception, e:  # this is home team exception
+                c.log.error('error processing home team:{0}'.format(g.home_team_id))
+                c.log.error(e)
+                c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='FAILED', group_status='N/A')
+                raise Exception('Error processing home team')
+
+            try:
                 c.log.info('processing visitor team:{0}'.format(g.visitor_team_id))
                 c.start_log(run_id=g_run_id, node='team', node_key=g.visitor_team_id, parent_key=g.game_id,
                             node_status='IN PROGRESS')
 
                 visitor_team_measure_count = process_team(g.visitor_team_id)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='COMPLETED',
-                          group_status='COMPLETED')
+                          group_status='N/A')
 
                 try:  # this is visitor team players' try
                     c.log.info('processing visitor team players')
@@ -337,24 +362,26 @@ def main():
                         c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                                 p.player_id))
                         c.start_log(run_id=g_run_id, node='player', node_key=p.player_id, parent_key=g.visitor_team_id,
-                                    node_status='IN PROGRESS')
+                                    node_status='N/A')
 
                         player_measure_count = process_player(player_id=p.player_id)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
-                                  group_status='COMPLETED')
+                                  group_status='N/A')
 
                 except Exception, e:  # this is visitor team players' exception
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
                     c.log.error(e)
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                    c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
                     raise Exception('Error processing player')
 
-            except Exception, e:  # this is team exception
-                c.log.error('error processing team:{0}'.format(g.home_team_id))
+            except Exception, e:  # this is visitor team exception
+                c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
                 c.log.error(e)
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
-                raise Exception('Error processing team')
-            # raw_input("Press Enter to continue...")
+                c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='FAILED', group_status='N/A')
+                raise Exception('Error processing visitor team')
+
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='COMPLETED')
             #  at this point all the teams and players processed so game group_status can be updated as completed
         except Exception, e:  # this is game exception
