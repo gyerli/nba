@@ -53,6 +53,8 @@ def update_schedule():
 
     cur.execute(sql)
     last_game_dt = cur.fetchone()[0]
+    if last_game_dt is None:
+        last_game_dt = g_season_start_date - datetime.timedelta(days=1)
 
     if last_processed_game_dt is not None:
         c.log.info('found dates has already been processed for this season')
