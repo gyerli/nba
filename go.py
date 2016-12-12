@@ -54,7 +54,7 @@ def update_schedule():
     last_game_dt = cur.fetchone()[0]
 
     if last_processed_game_dt is not None:
-        c.log.info('found processed games for this season')
+        c.log.info('found dates has already been processed for this season')
         c.log.info('last processed schedule date: {0}'.format(
             last_processed_game_dt.strftime("%Y-%m-%d")))
         start_dt = last_processed_game_dt + datetime.timedelta(days=1)
