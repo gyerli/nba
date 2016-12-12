@@ -77,22 +77,24 @@ def start_log(run_id, node, node_name, node_key, parent_key, node_status):
     conn.commit()
 
 
-def end_log(run_id, node, key, status, group_status):
+def end_log(run_id, node, key, status, group_status, cnt):
     if status is not None:
         sql = "UPDATE job.run_log " \
               "  SET  node_status = '{0}' " \
               "      ,group_status = '{1}' " \
               "      ,end_dtm = '{2}' " \
-              " WHERE run_id = {3} " \
-              "   AND node = '{4}' " \
-              "   AND node_key = '{5}' ".format(status, group_status, datetime.datetime.now(), run_id, node, key)
+              "      ,measure_cnt = '{3}' " \
+              " WHERE run_id = {4} " \
+              "   AND node = '{5}' " \
+              "   AND node_key = '{6}' ".format(status, group_status, datetime.datetime.now(), cnt, run_id, node, key)
     else:
         sql = "UPDATE job.run_log " \
               "  SET  group_status = '{0}' " \
               "      ,end_dtm = '{1}' " \
-              " WHERE run_id = {2} " \
-              "   AND node = '{3}' " \
-              "   AND node_key = '{4}' ".format(group_status, datetime.datetime.now(), run_id, node, key)
+              "      ,measure_cnt = '{2}' " \
+              " WHERE run_id = {3} " \
+              "   AND node = '{4}' " \
+              "   AND node_key = '{5}' ".format(group_status, datetime.datetime.now(), cnt, run_id, node, key)
 
     cur = conn.cursor()
     cur.execute(sql)
