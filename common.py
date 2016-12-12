@@ -40,29 +40,30 @@ def end_run(run_id, status):
         log.debug('ended run => {0} with status => {1}'.format(run_id, status))
         conn.commit()
 
-        if status == 'FAILED':
-            log.error('updating all run logs as FAILED')
-            sql = "UPDATE job.run_log " \
-                  "   SET node_status = 'FAILED', " \
-                  "       end_dtm = '{0}' " \
-                  " WHERE run_id = {1} " \
-                  "   AND node <> 'game' ".format(datetime.datetime.now(), run_id)
-            log.debug(sql)
-            cur.execute(sql)
-            conn.commit()
+        # if status == 'FAILED':
+        #     log.error('updating all run logs as FAILED')
+        #     sql = "UPDATE job.run_log " \
+        #           "   SET node_status = 'FAILED', " \
+        #           "       end_dtm = '{0}' " \
+        #           " WHERE run_id = {1} " \
+        #           "   AND node <> 'game' ".format(datetime.datetime.now(), run_id)
+        #     log.debug(sql)
+        #     cur.execute(sql)
+        #     conn.commit()
 
     except Exception, e:
         log.error('error ending run')
         raise
 
 
-def start_log(run_id, node, node_key, parent_key, node_status):
+def start_log(run_id, node, node_name, node_key, parent_key, node_status):
     sql = "INSERT INTO job.run_log " \
-          "(run_id,node,node_key,parent_key,node_status,group_status,season,season_type,started_dtm) " \
+          "(run_id,node,node_name,node_key,parent_key,node_status,group_status,season,season_type,started_dtm) " \
           "VALUES " \
-          "({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}')".format(
+          "({0},'{1}','{2}','{3}','{4}','{5}','{6}','{7}','{8}','{9}')".format(
         run_id
         , node
+        , str(node_name).replace("'","''")
         , node_key
         , parent_key
         , node_status
@@ -77,17 +78,22 @@ def start_log(run_id, node, node_key, parent_key, node_status):
 
 
 def end_log(run_id, node, key, status, group_status):
-    sql = "UPDATE job.run_log " \
-          "  SET  node_status = '{0}' " \
-          "      ,group_status = '{1}' " \
-          "      ,end_dtm = '{2}' " \
-          " WHERE run_id = {3} " \
-          "   AND node = '{4}' " \
-          "   AND node_key = '{5}' " \
-          "   AND season = '{6}' " \
-          "   AND season_type = '{7}' ".format(status, group_status, datetime.datetime.now(), run_id, node, key,
-                                               g_season,
-                                               g_season_type)
+    if status is not None:
+        sql = "UPDATE job.run_log " \
+              "  SET  node_status = '{0}' " \
+              "      ,group_status = '{1}' " \
+              "      ,end_dtm = '{2}' " \
+              " WHERE run_id = {3} " \
+              "   AND node = '{4}' " \
+              "   AND node_key = '{5}' ".format(status, group_status, datetime.datetime.now(), run_id, node, key)
+    else:
+        sql = "UPDATE job.run_log " \
+              "  SET  group_status = '{0}' " \
+              "      ,end_dtm = '{1}' " \
+              " WHERE run_id = {2} " \
+              "   AND node = '{3}' " \
+              "   AND node_key = '{4}' ".format(group_status, datetime.datetime.now(), run_id, node, key)
+
 
     cur = conn.cursor()
     cur.execute(sql)

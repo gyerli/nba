@@ -298,8 +298,8 @@ def main():
         schedule_key = g.gamecode[0:8]
         c.log.info('processing game:{0}'.format(g.gamecode))
         try:  # this is game try
-            c.start_log(run_id=g_run_id, node='game', node_key=g.game_id, parent_key=schedule_key,
-                        node_status='IN PROGRESS')
+            c.start_log(run_id=g_run_id, node='game', node_name=g.gamecode, node_key=g.game_id, 
+                        parent_key=schedule_key, node_status='IN PROGRESS')
 
             game_measure_count = process_game(g.game_id)
 
@@ -308,8 +308,8 @@ def main():
 
             try:  # this is team try for home team
                 c.log.info('processing home team:{0}'.format(g.home_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_key=g.home_team_id, parent_key=g.game_id,
-                            node_status='IN PROGRESS')
+                c.start_log(run_id=g_run_id, node='team', node_name=g.home_team_id, node_key=g.home_team_id, 
+                            parent_key=g.game_id, node_status='IN PROGRESS')
 
                 home_team_measure_count = process_team(g.home_team_id)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='COMPLETED',
@@ -321,8 +321,8 @@ def main():
                         p = c.reg(players, player)
                         c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                                 p.player_id))
-                        c.start_log(run_id=g_run_id, node='player', node_key=p.player_id, parent_key=g.home_team_id,
-                                    node_status='IN PROGRESS')
+                        c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id, 
+                                    parent_key=g.home_team_id, node_status='IN PROGRESS')
 
                         player_measure_count = process_player(player_id=p.player_id)
                         if p.player_id == 201142:
@@ -335,20 +335,24 @@ def main():
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
                     c.log.error(e)
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                    # here we need to fail both team and game (only group status=FAILED)
                     c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
+                    c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                     raise Exception('Error processing player')
 
             except Exception, e:  # this is home team exception
                 c.log.error('error processing home team:{0}'.format(g.home_team_id))
                 c.log.error(e)
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='FAILED', group_status='N/A')
+                c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                 raise Exception('Error processing home team')
 
             try:
                 c.log.info('processing visitor team:{0}'.format(g.visitor_team_id))
-                c.start_log(run_id=g_run_id, node='team', node_key=g.visitor_team_id, parent_key=g.game_id,
-                            node_status='IN PROGRESS')
+                c.start_log(run_id=g_run_id, node='team', node_name=g.visitor_team_id, node_key=g.visitor_team_id, 
+                            parent_key=g.game_id, node_status='IN PROGRESS')
 
                 visitor_team_measure_count = process_team(g.visitor_team_id)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='COMPLETED',
@@ -361,8 +365,8 @@ def main():
                         p = c.reg(players, player)
                         c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                                 p.player_id))
-                        c.start_log(run_id=g_run_id, node='player', node_key=p.player_id, parent_key=g.visitor_team_id,
-                                    node_status='N/A')
+                        c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id, 
+                                    parent_key=g.visitor_team_id, node_status='N/A')
 
                         player_measure_count = process_player(player_id=p.player_id)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
@@ -372,14 +376,18 @@ def main():
                     c.log.error('error processing home team players:{0}'.format(g.home_team_id))
                     c.log.error(e)
                     c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                    # here we need to fail both team and game (only group status=FAILED)
                     c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A')
+                    c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                     raise Exception('Error processing player')
 
             except Exception, e:  # this is visitor team exception
                 c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
                 c.log.error(e)
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
+                # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='FAILED', group_status='N/A')
+                c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED')
                 raise Exception('Error processing visitor team')
 
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='COMPLETED')
@@ -388,7 +396,8 @@ def main():
             c.log.error('error processing game:{0}'.format(g.gamecode))
             c.log.error(e)
             c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
-            c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='FAILED')
+            # we don't need to end_log for the game. it is already been handeled in team and player exceptions
+            # c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='FAILED', group_status='FAILED')
             c.end_run(g_run_id, 'FAILED')
             sys.exit(1)
     c.end_run(g_run_id, 'COMPLETED')
