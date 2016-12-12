@@ -4,7 +4,6 @@ import datetime
 import time
 import argparse
 import inspect
-import sqlparse
 
 from nba_py import player as _player
 from nba_py import constants as _constants
