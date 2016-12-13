@@ -153,7 +153,7 @@ def get_games():
           "                     WHERE rl.node = 'game' " \
           "                       AND rl.node_key = g.game_id  " \
           "                       AND rl.node_status = 'COMPLETED' " \
-          "                       AND rl.group_status = 'COMPLETED' ) \"" \
+          "                       AND rl.group_status = 'COMPLETED' ) " \
           " ORDER BY to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD') ".format(g_season, g_season_type)
 
     c.log.debug(sql)
@@ -373,7 +373,7 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
-                    if get_player_status(p.player_id, p.home_team_id):
+                    if get_player_status(p.player_id, g.home_team_id):
                         continue
 
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
@@ -428,7 +428,7 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
-                    if get_player_status(p.player_id, p.visitor_team_id):
+                    if get_player_status(p.player_id, g.visitor_team_id):
                         continue
 
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
