@@ -8,6 +8,8 @@ import traceback
 
 from nba_py import player as _player
 from nba_py import constants as _constants
+from nba_py import shotchart as _shotchart
+
 import gamev2 as _game
 import teamv2 as _team
 import common as c
@@ -212,7 +214,7 @@ def get_node_status(node, node_key):
 
 def process_team(team_id):
     if get_node_status('team', team_id):
-        c.log.info('This team is refreshed in this session {0}'.format(team_id))
+        c.log.debug('This team is refreshed in this session {0}'.format(team_id))
         return 0
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
@@ -238,7 +240,7 @@ def process_team(team_id):
 
 def process_player(player_id, team_id):
     if get_node_status('player', player_id):
-        c.log.info('This player is refreshed in this session {0}'.format(player_id))
+        c.log.debug('This player is refreshed in this session {0}'.format(player_id))
         return 0
     _measures = c.get_measures('player')
     for _measure in _measures.fetchall():
