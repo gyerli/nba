@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import sys
 import nba_py
 import datetime
