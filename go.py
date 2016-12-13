@@ -97,7 +97,7 @@ def update_schedule():
                 c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
                 c.log.error(traceback.format_exc())
                 c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='FAILED',
-                          group_status='N/A', cnt=None)
+                          group_status='N/A', cnt=0)
                 raise Exception('Error processing schedule: {0}'.format(start_dt.strftime("%Y%m%d")))
 
         c.end_log(run_id=g_run_id, node='schedule', key=start_dt.strftime("%Y%m%d"), status='COMPLETED',
@@ -381,9 +381,9 @@ def main():
                         c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                         # here we need to fail both team and game (only group status=FAILED)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A',
-                                  cnt=None)
+                                  cnt=0)
                         c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
-                                  cnt=None)
+                                  cnt=0)
                         raise Exception('Error processing player')
 
             except (Exception, KeyboardInterrupt):  # this is home team exception
@@ -392,9 +392,9 @@ def main():
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='FAILED', group_status='N/A',
-                          cnt=None)
+                          cnt=0)
                 c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
-                          cnt=None)
+                          cnt=0)
                 raise Exception('Error processing home team')
 
             try:
@@ -431,9 +431,9 @@ def main():
                         c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                         # here we need to fail both team and game (only group status=FAILED)
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='FAILED', group_status='N/A',
-                                  cnt=None)
+                                  cnt=0)
                         c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
-                                  cnt=None)
+                                  cnt=0)
                         raise Exception('Error processing player')
 
             except (Exception, KeyboardInterrupt):  # this is visitor team exception
@@ -442,9 +442,9 @@ def main():
                 c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                 # here we need to fail both team and game (only group status=FAILED)
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='FAILED', group_status='N/A',
-                          cnt=None)
+                          cnt=0)
                 c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
-                          cnt=None)
+                          cnt=0)
                 raise Exception('Error processing visitor team')
 
             c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='COMPLETED', group_status='COMPLETED',
