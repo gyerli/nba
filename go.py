@@ -213,6 +213,20 @@ def get_node_status(node, node_key):
     return cur.rowcount > 0
 
 
+def get_player_status(player_id, team_id):
+    sql = "SELECT 1 " \
+          "  FROM job.run_log " \
+          " WHERE node = 'player' " \
+          "   AND node_key = '{0}' " \
+          "   AND parent_key = '{1}' " \
+          "   AND run_id = '{2}' " \
+          "   AND node_status = 'COMPLETED' ".format(player_id, team_id, g_run_id)
+
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    return cur.rowcount > 0
+
+
 def process_team(team_id):
     if get_node_status('team', team_id):
         c.log.debug('This team is refreshed in this session {0}'.format(team_id))
@@ -240,9 +254,6 @@ def process_team(team_id):
 
 
 def process_player(player_id, team_id):
-    if get_node_status('player', player_id):
-        c.log.debug('This player is refreshed in this session {0}'.format(player_id))
-        return 0
     _measures = c.get_measures('player')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
@@ -361,7 +372,7 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
-                    if get_node_status('player', p.player_id):
+                    if get_player_status(p.player_id, p.home_team_id):
                         continue
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                             p.player_id))
@@ -415,7 +426,7 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
-                    if get_node_status('player', p.player_id):
+                    if get_player_status(p.player_id, p.visitor_team_id):
                         continue
 
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
