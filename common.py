@@ -3,7 +3,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import psycopg2 as pg
 from sqlalchemy import create_engine
-
+import os
 
 class reg(object):
     def __init__(self, cursor, row):
@@ -206,9 +206,10 @@ valid_seasons = ['2016-17', '2015-16', '2014-15', '2013-14', '2012-13', '2011-12
 
 current_season = '2016-17'
 
-nba_home = './'
-data_folder = './data/'
-log_folder = './log/'
+nba_home = os.path.dirname(__file__)
+data_folder = os.path.join(nba_home,'data') 
+log_folder = os.path.join(nba_home,'log') 
+log_file = os.path.join(log_folder,'nba_daily.log')
 
 # Database
 # ==============================================================================
@@ -220,24 +221,28 @@ engine = create_engine('postgresql://ictsh:gyerli@aws-srv-1:5432/nba')
 log = logging.getLogger('go')
 log.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
-fh = logging.FileHandler("{0}go.log".format(log_folder))
-fh.setLevel(logging.DEBUG)
+# fh = logging.FileHandler(log_file)
+# fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 
-th = TimedRotatingFileHandler("{0}nba_daily.log".format(log_folder),
-                              when="D",
-                              interval='midnight',
+th = TimedRotatingFileHandler(log_file,
+                              when="midnight",
+                              interval=1,
                               backupCount=5)
+
+th.setLevel(logging.DEBUG)
 
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 ch.setFormatter(formatter)
-fh.setFormatter(formatter)
+# fh.setFormatter(formatter)
+th.setFormatter(formatter)
+
 # add the handlers to logger
 log.addHandler(ch)
-log.addHandler(fh)
+# log.addHandler(fh)
 log.addHandler(th)
 
 global g_season

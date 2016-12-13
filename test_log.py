@@ -2,8 +2,7 @@
 
 import common as c
 import time
+import os
 
-for i in range(6):
-    c.log.info("This is a test!")
-    time.sleep(75)
-
+c.log.info("This is a test!")
+c.log.debug("This is a debug test!")
