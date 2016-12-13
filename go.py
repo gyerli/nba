@@ -153,7 +153,8 @@ def get_games():
           "                     WHERE rl.node = 'game' " \
           "                       AND rl.node_key = g.game_id  " \
           "                       AND rl.node_status = 'COMPLETED' " \
-          "                       AND rl.group_status = 'COMPLETED' ) ".format(g_season, g_season_type)
+          "                       AND rl.group_status = 'COMPLETED' ) \"" \
+          " ORDER BY to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD') ".format(g_season, g_season_type)
 
     c.log.debug(sql)
     cur = c.conn.cursor()
@@ -361,6 +362,8 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
+                    if get_node_status('player', p.player_id):
+                        continue
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                             p.player_id))
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
@@ -413,6 +416,9 @@ def main():
                 players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
                 for player in players.fetchall():
                     p = c.reg(players, player)
+                    if get_node_status('player', p.player_id):
+                        continue
+
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                             p.player_id))
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
