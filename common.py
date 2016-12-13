@@ -1,5 +1,6 @@
 import datetime
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import psycopg2 as pg
 from sqlalchemy import create_engine
 
@@ -224,6 +225,12 @@ fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
+
+th = TimedRotatingFileHandler("{0}nba_daily.log".format(log_folder),
+                              when="D",
+                              interval='midnight',
+                              backupCount=5)
+
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 ch.setFormatter(formatter)
@@ -231,6 +238,7 @@ fh.setFormatter(formatter)
 # add the handlers to logger
 log.addHandler(ch)
 log.addHandler(fh)
+log.addHandler(th)
 
 global g_season
 global g_season_type
