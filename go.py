@@ -148,6 +148,7 @@ def get_games():
           "  FROM lnd.mvw_schedule_game_header g " \
           " WHERE g._season = '{0}' AND g._season_type = '{1}' " \
           "   AND g.game_status_text = 'Final' " \
+          "   AND g.gamecode NOT LIKE '%WSTEST%' " \
           "   AND NOT EXISTS ( SELECT 1 FROM job.run_log rl " \
           "                     WHERE rl.node = 'game' " \
           "                       AND rl.node_key = g.game_id  " \

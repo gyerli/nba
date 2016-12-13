@@ -194,7 +194,7 @@ def refresh_mviews():
 
 
 def get_team_abbrv(team_id):
-    sql = "SELECT DISTINCT abbreviation, FROM lnd.team WHERE team_id = {0}".format(team_id)
+    sql = "SELECT DISTINCT abbreviation FROM lnd.team WHERE team_id = {0}".format(team_id)
     cur = conn.cursor()
     cur.execute(sql)
     return cur.fetchone()[0]
