@@ -374,6 +374,7 @@ def main():
                     p = c.reg(players, player)
                     if get_player_status(p.player_id, p.home_team_id):
                         continue
+
                     c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
                                                                             p.player_id))
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
