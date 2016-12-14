@@ -152,7 +152,7 @@ def refresh_team_roster_coaches():
     sql = "SELECT DISTINCT " \
           "    team_id, team_abbrv " \
           "  FROM lnd.team " \
-          " WHERE abbreviation IS NOT NULL"
+          " WHERE team_abbrv IS NOT NULL"
 
     cur = c.conn.cursor()
     cur.execute(sql)
