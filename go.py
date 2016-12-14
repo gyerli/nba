@@ -65,7 +65,10 @@ def update_schedule():
         c.log.info('last processed schedule date: {0}'.format(
             last_processed_game_dt.strftime("%Y-%m-%d")))
         start_dt = last_processed_game_dt + datetime.timedelta(days=1)
-        end_dt = datetime.date.today()
+        if g_is_current_season:
+            end_dt = datetime.date.today()
+        else:
+            end_dt = g_season_end_date
         # remove below after testing
         # end_dt = datetime.date(2016, 10, 26)
     if g_schedule:
@@ -75,7 +78,10 @@ def update_schedule():
         if start_dt > g_season_end_date:
             c.log.info('seems like we already pulled all the game dates')
             start_dt = g_season_end_date
-        end_dt = g_season_end_date
+        if g_is_current_season:
+            end_dt = datetime.date.today()
+        else:
+            end_dt = g_season_end_date
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
     c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
@@ -109,6 +115,33 @@ def update_schedule():
     c.log.info('updating materialized views')
     c.refresh_mviews()
     c.log.info('completed schedule'.center(80, '-'))
+
+
+# def refresh_players():
+#   c.log.info('Updating Player list')
+#   for season in c.valid_seasons:
+#     pl = _player.PlayerList(season=season,only_current=0)
+#     df = pl.info()
+#     df.columns = map(unicode.lower, df.columns)
+#     df['_season'] = season
+#     df['_create_date'] = datetime.datetime.now()
+#     df.to_sql(name='player',con=c.engine,schema='lnd',if_exists='append',index=False)
+#
+#   c.log.info('Updating common player information')
+#   sql = "SELECT DISTINCT person_id,display_first_last,display_last_comma_first " \
+#         "  FROM lnd.player " \
+#         " ORDER BY display_last_comma_first "
+#   cur = c.conn.cursor()
+#   cur.execute(sql)
+#   players = cur.fetchall()
+#
+#   for _p in players:
+#     c.log.info('Player => {0} ({1})'.format(_p[1], _p[0]))
+#     p = _player.PlayerSummary(player_id=_p[0])
+#     df = p.info()
+#     df.columns = map(unicode.lower, df.columns)
+#     df['_create_date'] = datetime.datetime.now()
+#     df.to_sql(name='player_common',con=c.engine,schema='lnd',if_exists='append',index=False)
 
 
 def refresh_team_roster_coaches():
