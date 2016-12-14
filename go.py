@@ -69,8 +69,8 @@ def update_schedule():
             end_dt = datetime.date.today()
         else:
             end_dt = g_season_end_date
-        # remove below after testing
-        # end_dt = datetime.date(2016, 10, 26)
+            # remove below after testing
+            # end_dt = datetime.date(2016, 10, 26)
     if g_schedule:
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
@@ -117,15 +117,17 @@ def update_schedule():
     c.log.info('completed schedule'.center(80, '-'))
 
 
-# def refresh_players():
-#   c.log.info('Updating Player list')
-#   for season in c.valid_seasons:
-#     pl = _player.PlayerList(season=season,only_current=0)
-#     df = pl.info()
-#     df.columns = map(unicode.lower, df.columns)
-#     df['_season'] = season
-#     df['_create_date'] = datetime.datetime.now()
-#     df.to_sql(name='player',con=c.engine,schema='lnd',if_exists='append',index=False)
+def refresh_players():
+    c.log.info('Updating Player list'.center(80, '#'))
+    for season in c.valid_seasons:
+        pl = _player.PlayerList(season=season, only_current=0)
+        df = pl.info()
+        df.columns = map(unicode.lower, df.columns)
+        df['_season'] = season
+        df['_create_date'] = datetime.datetime.now()
+        df.to_sql(name='player', con=c.engine, schema='lnd', if_exists='append', index=False)
+
+
 #
 #   c.log.info('Updating common player information')
 #   sql = "SELECT DISTINCT person_id,display_first_last,display_last_comma_first " \
@@ -148,9 +150,10 @@ def refresh_team_roster_coaches():
     c.log.info('updating team roster and coaches'.center(80, '-'))
 
     sql = "SELECT DISTINCT " \
-          "    team_id, abbreviation " \
+          "    team_id, team_abbrv " \
           "  FROM lnd.team " \
           " WHERE abbreviation IS NOT NULL"
+
     cur = c.conn.cursor()
     cur.execute(sql)
     teams = cur.fetchall()
@@ -337,6 +340,7 @@ def main():
     parser.add_argument('-t', '--season_type', help='Season type (R=>Regular Season, P=>Playoffs)', default='R')
     parser.add_argument('-f', '--schedule', help='Update full schedule', action='store_true')
     parser.add_argument('-r', '--roster', help='Refresh team roster and coaches', action='store_true')
+    parser.add_argument('-p', '--players', help='Refresh player list', action='store_true')
     parser.add_argument('-d', '--debug', help='Debugging flag', action='store_true')
 
     args = vars(parser.parse_args())
@@ -368,11 +372,17 @@ def main():
         g_season_end_date.strftime("%Y-%m-%d")))
 
     g_run_id = c.start_run()
+    c.g_run_id = g_run_id
 
     update_schedule()
 
     if args['roster']:
         refresh_team_roster_coaches()
+        sys.exit(0)
+
+    if args['players']:
+        refresh_players()
+        sys.exit(0)
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()

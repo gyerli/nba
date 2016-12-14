@@ -146,6 +146,7 @@ def p_to_sql(df, params):
     df['_season'] = g_season
     df['_season_type'] = g_season_type
     df['_create_date'] = datetime.datetime.now()
+    df['_run_id'] = g_run_id
     df.to_sql(name=params['table_name'], con=engine, schema='lnd', if_exists='append', index=False)
 
 
@@ -156,6 +157,7 @@ def g_to_sql(df, params):
     df['_season'] = g_season
     df['_season_type'] = g_season_type
     df['_create_date'] = datetime.datetime.now()
+    df['_run_id'] = g_run_id
     df.to_sql(name=params['table_name'], con=engine, schema='lnd', if_exists='append', index=False)
 
 
@@ -166,6 +168,7 @@ def t_to_sql(df, params):
     df['_season'] = g_season
     df['_season_type'] = g_season_type
     df['_create_date'] = datetime.datetime.now()
+    df['_run_id'] = g_run_id
     df.to_sql(name=params['table_name'], con=engine, schema='lnd', if_exists='append', index=False)
 
 
@@ -175,6 +178,7 @@ def m_to_sql(df, params):
     df['_team_id'] = params['team_id']
     df['_season'] = params['season']
     df['_create_date'] = datetime.datetime.now()
+    df['_run_id'] = g_run_id
     df.to_sql(name=params['table_name'], con=engine, schema='lnd', if_exists='append', index=False)
 
 
@@ -184,6 +188,7 @@ def s_to_sql(df, params):
     df['_season'] = g_season
     df['_season_type'] = g_season_type
     df['_create_date'] = datetime.datetime.now()
+    df['_run_id'] = g_run_id
     df.to_sql(name=params['table_name'], con=engine, schema='lnd', if_exists='append', index=False)
 
 
@@ -195,7 +200,7 @@ def refresh_mviews():
 
 
 def get_team_abbrv(team_id):
-    sql = "SELECT DISTINCT abbreviation FROM lnd.team WHERE team_id = {0}".format(team_id)
+    sql = "SELECT DISTINCT team_abbrv FROM lnd.team WHERE team_id = {0}".format(team_id)
     cur = conn.cursor()
     cur.execute(sql)
     return cur.fetchone()[0]
@@ -249,3 +254,4 @@ global g_season
 global g_season_type
 global g_season_start_date
 global g_season_end_date
+global g_run_id
