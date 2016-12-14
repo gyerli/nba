@@ -31,7 +31,7 @@ def get_players_from_game(game_id, team_id):
 
 
 def update_schedule():
-    c.log.info('############################## updating schedule #################################################')
+    c.log.info('################# updating schedule ##########################')
     start_dt = g_season_start_date
     end_dt = g_season_end_date
 
@@ -108,11 +108,11 @@ def update_schedule():
         start_dt += datetime.timedelta(days=1)
     c.log.info('updating materialized views')
     c.refresh_mviews()
-    c.log.info('------------------------------ completed schedule -------------------------------------------------')
+    c.log.info('completed schedule'.center(80, '-'))
 
 
 def refresh_team_roster_coaches():
-    c.log.info('updating team roster and coaches')
+    c.log.info('updating team roster and coaches'.center(80, '-'))
 
     sql = "SELECT DISTINCT " \
           "    team_id, abbreviation " \
@@ -341,7 +341,7 @@ def main():
     if args['roster']:
         refresh_team_roster_coaches()
 
-    c.log.info('############################## starting games ####################################################')
+    c.log.info('starting games'.center(80, '#'))
     games = get_games()
     for game in games.fetchall():
         g = c.reg(games, game)
