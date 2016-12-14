@@ -374,8 +374,6 @@ def main():
     g_run_id = c.start_run()
     c.g_run_id = g_run_id
 
-    update_schedule()
-
     if args['roster']:
         refresh_team_roster_coaches()
         sys.exit(0)
@@ -383,6 +381,9 @@ def main():
     if args['players']:
         refresh_players()
         sys.exit(0)
+
+
+    update_schedule()
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()
