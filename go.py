@@ -78,10 +78,7 @@ def update_schedule():
         if start_dt > g_season_end_date:
             c.log.info('seems like we already pulled all the game dates')
             start_dt = g_season_end_date
-        if g_is_current_season:
-            end_dt = datetime.date.today()
-        else:
-            end_dt = g_season_end_date
+        end_dt = g_season_end_date
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
     c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
@@ -374,8 +371,6 @@ def main():
     g_run_id = c.start_run()
     c.g_run_id = g_run_id
 
-    update_schedule()
-
     if args['roster']:
         refresh_team_roster_coaches()
         sys.exit(0)
@@ -383,6 +378,9 @@ def main():
     if args['players']:
         refresh_players()
         sys.exit(0)
+
+
+    update_schedule()
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()
