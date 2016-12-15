@@ -482,7 +482,7 @@ def main():
                                 parent_key=g.visitor_team_id, node_status='IN PROGRESS')
 
                     try:  # this is visitor team players' try
-                        player_measure_count = process_player(player_id=p.player_id, team_id=g.home_team_id)
+                        player_measure_count = process_player(player_id=p.player_id, team_id=g.visitor_team_id)
                         c.log.debug('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A', cnt=player_measure_count)
@@ -490,7 +490,7 @@ def main():
                             time.sleep(0.25)
 
                     except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
-                        c.log.error('error processing home team players:{0}'.format(g.home_team_id))
+                        c.log.error('error processing visitor team players:{0}'.format(g.visitor_team_id))
                         c.log.error(traceback.format_exc())
                         c.log.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
                         # here we need to fail both team and game (only group status=FAILED)
