@@ -78,10 +78,7 @@ def update_schedule():
         if start_dt > g_season_end_date:
             c.log.info('seems like we already pulled all the game dates')
             start_dt = g_season_end_date
-        if g_is_current_season:
-            end_dt = datetime.date.today()
-        else:
-            end_dt = g_season_end_date
+        end_dt = g_season_end_date
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
     c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
