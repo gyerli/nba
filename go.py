@@ -80,9 +80,14 @@ def update_schedule():
             start_dt = g_season_end_date
         end_dt = g_season_end_date
 
+    if start_dt >= end_dt:
+        c.log.info('no need to process schedule pull')
+        c.log.info('completed schedule'.center(80, '-'))
+        return
+
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
     c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
-
+    
     while start_dt <= end_dt:
         c.log.info('getting games for the date => {0}'.format(start_dt.strftime("%Y%m%d")))
         c.start_log(run_id=g_run_id, node='schedule', node_name=start_dt.strftime("%Y%m%d"),
@@ -183,7 +188,7 @@ def get_games():
           "  FROM lnd.mvw_schedule_game_header g " \
           " WHERE g._season = '{0}' AND g._season_type = '{1}' " \
           "   AND g.game_status_text = 'Final' " \
-          "   AND g.gamecode NOT LIKE '%WSTEST%' " \
+          "   AND (g.gamecode NOT LIKE '%WSTEST%' AND g.gamecode NOT LIKE '%ESTWST%' ) " \
           "   AND NOT EXISTS ( SELECT 1 FROM job.run_log rl " \
           "                     WHERE rl.node = 'game' " \
           "                       AND rl.node_key = g.game_id  " \
@@ -241,8 +246,10 @@ def get_node_status(node, node_key):
           "  FROM job.run_log " \
           " WHERE node = '{0}' " \
           "   AND node_key = '{1}' " \
-          "   AND run_id = '{2}' " \
-          "   AND node_status = 'COMPLETED' ".format(node, node_key, g_run_id)
+          "   AND ( run_id = '{2}' OR date(end_dtm) = date(current_date) )" \
+          "   AND season = '{3}' " \
+          "   AND season_type = '{4}' " \
+          "   AND node_status = 'COMPLETED' ".format(node, node_key, g_run_id, g_season, g_season_type)
 
     cur = c.conn.cursor()
     cur.execute(sql)
@@ -255,8 +262,10 @@ def get_player_status(player_id, team_id):
           " WHERE node = 'player' " \
           "   AND node_key = '{0}' " \
           "   AND parent_key = '{1}' " \
-          "   AND run_id = '{2}' " \
-          "   AND node_status = 'COMPLETED' ".format(player_id, team_id, g_run_id)
+          "   AND ( run_id = '{2}' OR date(end_dtm) = date(current_date) ) " \
+          "   AND season = '{3}' " \
+          "   AND season_type = '{4}' " \
+          "   AND node_status = 'COMPLETED' ".format(player_id, team_id, g_run_id, g_season, g_season_type)
 
     cur = c.conn.cursor()
     cur.execute(sql)
