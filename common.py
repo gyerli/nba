@@ -122,7 +122,8 @@ def get_measures(node):
           "  FROM job.node " \
           " WHERE node = '{0}' " \
           "   AND active = True " \
-          " ORDER BY endpoint, measure, table_name".format(node)
+          "   AND available_year <= split_part('{1}','-',1)::integer " \
+          " ORDER BY endpoint, measure, table_name".format(node, g_season)
 
     cur.execute(sql)
     return cur
