@@ -138,10 +138,36 @@ def get_measures(node):
 #   df['_create_date'] = cmn.now()
 #   df.to_sql(name=params['table_name'],con=engine,schema='lnd',if_exists='append',index=False)
 
+def check_db_column(df,table_name):
+    cur = conn.cursor()
+    sql = "SELECT column_name " \
+          "  FROM information_schema.columns " \
+          " WHERE table_schema = 'lnd' " \
+          "   AND table_name='{0}' ".format(table_name)
+
+    cur.execute(sql)
+    db_cols = [row[0] for row in cur]
+    for df_col in df.columns:
+        if df_col not in db_cols:
+            log.warning('new column {0} found in NBA stats that doesn''t exists in landing table {1}'.format(df_col,table_name))
+            log.warning('attempting to add that column to database')
+            df_data_type = str(df[df_col].dtype)
+            if df_data_type == 'int64': 
+                data_type = 'integer'
+            elif df_data_dtpe == 'float64':
+                data_type = 'float'
+
+            alter_sql = " ALTER TABLE lnd.{0} ADD COLUMN {1} {2} ".format(table_name,df_col,data_type)
+            log.warning(alter_sql)
+            cur.execute(alter_sql)
+            conn.commit()
+            break
+    
 def p_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
     df.rename(columns={'stats_value': '_stats_value'}, inplace=True)
+    check_db_column(df, params['table_name'])
     df['_player_id'] = params['player_id']
     df['_team_id'] = params['team_id']
     df['_season'] = g_season
