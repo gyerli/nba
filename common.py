@@ -180,6 +180,7 @@ def p_to_sql(df, params):
 def g_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
+    check_db_column(df, params['table_name'])
     df['_game_id'] = params['game_id']
     df['_season'] = g_season
     df['_season_type'] = g_season_type
@@ -191,6 +192,7 @@ def g_to_sql(df, params):
 def t_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
+    check_db_column(df, params['table_name'])
     df['_team_id'] = params['team_id']
     df['_season'] = g_season
     df['_season_type'] = g_season_type
@@ -202,6 +204,7 @@ def t_to_sql(df, params):
 def m_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
+    check_db_column(df, params['table_name'])
     df['_team_id'] = params['team_id']
     df['_season'] = params['season']
     df['_create_date'] = datetime.datetime.now()
@@ -212,6 +215,7 @@ def m_to_sql(df, params):
 def s_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
+    check_db_column(df, params['table_name'])
     df['_season'] = g_season
     df['_season_type'] = g_season_type
     df['_create_date'] = datetime.datetime.now()
