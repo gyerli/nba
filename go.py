@@ -31,7 +31,7 @@ def get_players_from_game(game_id, team_id):
 
 
 def update_schedule():
-    c.log.info('################# updating schedule ##########################')
+    c.log.info('updating schedule'.center(80, '#'))
     start_dt = g_season_start_date
     end_dt = g_season_end_date
 
@@ -71,6 +71,7 @@ def update_schedule():
             end_dt = g_season_end_date
             # remove below after testing
             # end_dt = datetime.date(2016, 10, 26)
+
     if g_schedule:
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
