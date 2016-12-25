@@ -163,7 +163,8 @@ def check_db_column(df,table_name):
             cur.execute(alter_sql)
             conn.commit()
             break
-    
+
+
 def p_to_sql(df, params):
     df.columns = map(unicode.lower, df.columns)
     df.rename(columns={'to': 'tov'}, inplace=True)
@@ -225,12 +226,6 @@ def s_to_sql(df, params):
 
 
 def refresh_mviews():
-    sql = "SELECT job.refresh_mviews()"
-    cur = conn.cursor()
-    cur.execute(sql)
-    conn.commit()
-
-def refresh_mviews():
     cur = conn.cursor()
     cur.execute('SELECT job.refresh_mviews()')
     conn.commit()
@@ -238,10 +233,16 @@ def refresh_mviews():
 
 def refresh_rpt_mviews():
     cur = conn.cursor()
-    cur.execute('SELECT job.refresh_dim_player()')
-    cur.execute('SELECT job.refresh_dim_game()')
-    cur.execute('SELECT ')
-
+    cur.execute('SELECT rpt.refresh_dim_player()')
+    log.info('dim_player =>{0}'.format(cur.fetchone()[0]))
+    cur.execute('SELECT rpt.refresh_dim_game()')
+    log.info('dim_game =>{0}'.format(cur.fetchone()[0]))
+    cur.execute('SELECT rpt.refresh_dim_player_team_history()')
+    log.info('dim_player_team_history =>{0}'.format(cur.fetchone()[0]))
+    cur.execute('SELECT rpt.refresh_fct_game_team()')
+    log.info('fct_game_team =>{0}'.format(cur.fetchone()[0]))
+    cur.execute('SELECT rpt.refresh_fct_game_player()')
+    log.info('fct_game_player =>{0}'.format(cur.fetchone()[0]))
     conn.commit()
 
 
