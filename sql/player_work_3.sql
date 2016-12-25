@@ -1,5 +1,12 @@
+refresh materialized view lnd.mvw_player_common;
+
+select rpt.refresh_dim_player()
+
+
 select 
-player_id
+public.hash8(player_id|| '|' now()) dim_player_guid
+,player_id|| '|' || now() crc_str
+,player_id id
 ,first_name
 ,last_name
 ,display_first_last
@@ -23,19 +30,9 @@ player_id
 ,draft_year
 ,draft_round
 ,draft_number
-,season
-,team_id
-,team_name
-,end_date last_played_date
-,start_date rec_start_date
-,case 
-   when end_date = max_dt then null
-   else end_date 
- end rec_end_date
-,case 
-   when end_date = max_dt then true
-   else false
- end is_rec_active
+,rec_start_date
+,rec_end_date
+,is_rec_active
 --,max_dt
 --,cnt
 --,rn
@@ -67,12 +64,13 @@ from (select
 		,pc._season season
 		,t.team_id
 		,t.team_name
+		,t.team_abbrv
 		,a.start_date
 		,a.end_date
 		,row_number() over (partition by pc.person_id, pc._season, pc._team_id order by a.start_date desc) rn
 		,max(a.end_date) over(partition by pc.person_id) max_dt
 		,cnt
-	  from lnd.player_common pc
+	  from lnd.mvw_player_common pc
 	    left join lnd.team t on pc._team_id = t.team_id
 	    left join ( SELECT 
 					   gps.player_id 
@@ -96,3 +94,6 @@ where 1=1
 --  and cnt > 0
 --  and player_id = 201196
 order by player_id, season, start_date
+
+
+select rpt.refresh_dim_player()
