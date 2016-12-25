@@ -229,6 +229,20 @@ def refresh_mviews():
     cur.execute(sql)
     conn.commit()
 
+def refresh_mviews():
+    cur = conn.cursor()
+    cur.execute('SELECT job.refresh_mviews()')
+    conn.commit()
+
+
+def refresh_rpt_mviews():
+    cur = conn.cursor()
+    cur.execute('SELECT job.refresh_dim_player()')
+    cur.execute('SELECT job.refresh_dim_game()')
+    cur.execute('SELECT ')
+
+    conn.commit()
+
 
 def get_team_abbrv(team_id):
     sql = "SELECT DISTINCT team_abbrv FROM lnd.team WHERE team_id = {0}".format(team_id)

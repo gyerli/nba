@@ -530,9 +530,11 @@ def main():
             # c.end_log(run_id=g_run_id, node='game', key=g.game_id, status='FAILED', group_status='FAILED')
             c.end_run(g_run_id, 'FAILED')
             sys.exit(1)
-    c.log.info('updating materialized views')
-    c.refresh_mviews()
     c.end_run(g_run_id, 'COMPLETED')
+    c.log.info('updating landing materialized views')
+    c.refresh_mviews()
+    c.log.info('updating reporting materialized views')
+    c.refresh_rpt_mviews()
 
 
 if __name__ == '__main__':
