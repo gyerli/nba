@@ -48,7 +48,20 @@ def update_schedule():
     cur.execute(sql)
     last_processed_game_dt = cur.fetchone()[0]
 
-    # find if any game processed for this season even it is not finished
+    # Is there any game in the past where it's status is not final
+    # some late games could be still in progress at the time of scheduled pull
+    sql = "SELECT " \
+          "  MIN(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
+          "FROM lnd.schedule_game_header " \
+          "WHERE to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD') < date(now()) " \
+          "  AND game_status_text <> 'Final' " \
+          "  AND _season = '{0}' " \
+          "  AND _season_type = '{1}' ".format(g_season, g_season_type)
+
+    cur.execute(sql)
+    not_processed_game_dt = cur.fetchone()[0]
+
+    # find if any game processed for this season even if it is not finished
     sql = "SELECT " \
           "  MAX(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
           "FROM lnd.schedule_game_header " \
@@ -64,7 +77,12 @@ def update_schedule():
         c.log.info('found dates has already been processed for this season')
         c.log.info('last processed schedule date: {0}'.format(
             last_processed_game_dt.strftime("%Y-%m-%d")))
-        start_dt = last_processed_game_dt + datetime.timedelta(days=1)
+        if not_processed_game_dt is not None:
+            c.log.warning('found game(s) in the past where it''s status is not final')
+            start_dt = not_processed_game_dt
+        else:
+            start_dt = last_processed_game_dt + datetime.timedelta(days=1)
+
         if g_is_current_season:
             end_dt = datetime.date.today()
         else:
@@ -73,6 +91,8 @@ def update_schedule():
             # end_dt = datetime.date(2016, 10, 26)
 
     if g_schedule:
+        # this is possibly requested when future games need to be processed
+        # but not sure
         c.log.info('full schedule requested')
         c.log.info('getting all dates until the end of season')
         start_dt = last_game_dt + datetime.timedelta(days=1)
@@ -388,7 +408,6 @@ def main():
     if args['players']:
         refresh_players()
         sys.exit(0)
-
 
     update_schedule()
 
