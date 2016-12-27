@@ -52,7 +52,7 @@ def update_schedule():
     # some late games could be still in progress at the time of scheduled pull
     sql = "SELECT " \
           "  MIN(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
-          "FROM lnd.schedule_game_header " \
+          "FROM lnd.mvw_schedule_game_header " \
           "WHERE to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD') < date(now()) " \
           "  AND game_status_text <> 'Final' " \
           "  AND _season = '{0}' " \
@@ -64,7 +64,7 @@ def update_schedule():
     # find if any game processed for this season even if it is not finished
     sql = "SELECT " \
           "  MAX(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
-          "FROM lnd.schedule_game_header " \
+          "FROM lnd.mvw_schedule_game_header " \
           "WHERE _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
@@ -135,8 +135,8 @@ def update_schedule():
                   group_status='N/A', cnt=measures.rowcount)
 
         start_dt += datetime.timedelta(days=1)
-    c.log.info('updating materialized views')
-    c.refresh_mviews()
+    c.log.info('updating schedule materialized view')
+    cur.execute('REFRESH MATERIALIZED VIEW lnd.mvw_schedule_game_header')
     c.log.info('completed schedule'.center(80, '-'))
 
 
