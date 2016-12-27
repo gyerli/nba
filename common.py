@@ -155,7 +155,7 @@ def check_db_column(df,table_name):
             df_data_type = str(df[df_col].dtype)
             if df_data_type == 'int64': 
                 data_type = 'integer'
-            elif df_data_dtpe == 'float64':
+            elif df_data_type == 'float64':
                 data_type = 'float'
 
             alter_sql = " ALTER TABLE lnd.{0} ADD COLUMN {1} {2} ".format(table_name,df_col,data_type)
