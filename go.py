@@ -295,7 +295,7 @@ def get_player_status(player_id, team_id):
 
 def process_team(team_id):
     if get_node_status('team', team_id):
-        c.log.debug('This team is refreshed in this session {0}'.format(team_id))
+        c.log.debug('This team {0} is refreshed in this session or today'.format(team_id))
         return 0
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
