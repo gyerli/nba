@@ -233,17 +233,29 @@ def refresh_mviews():
 
 def refresh_rpt_mviews():
     cur = conn.cursor()
-    cur.execute('SELECT rpt.refresh_dim_player()')
-    log.info('dim_player =>{0}'.format(cur.fetchone()[0]))
-    cur.execute('SELECT rpt.refresh_dim_game()')
-    log.info('dim_game =>{0}'.format(cur.fetchone()[0]))
-    cur.execute('SELECT rpt.refresh_dim_player_team_history()')
-    log.info('dim_player_team_history =>{0}'.format(cur.fetchone()[0]))
-    cur.execute('SELECT rpt.refresh_fct_game_team()')
-    log.info('fct_game_team =>{0}'.format(cur.fetchone()[0]))
-    cur.execute('SELECT rpt.refresh_fct_game_player()')
-    log.info('fct_game_player =>{0}'.format(cur.fetchone()[0]))
-    conn.commit()
+    try:
+        cur.execute('SELECT rpt.refresh_dim_player()')
+        log.info('dim_player =>{0}'.format(cur.fetchone()[0]))
+
+        cur.execute('SELECT rpt.refresh_dim_game()')
+        log.info('dim_game =>{0}'.format(cur.fetchone()[0]))
+
+        cur.execute('SELECT rpt.refresh_dim_player_team_history()')
+        log.info('dim_player_team_history =>{0}'.format(cur.fetchone()[0]))
+
+        cur.execute('REFRESH MATERIALIZED VIEW rpt.mvw_player_schedule')
+        log.info('mvw_player_schedule =>{0}'.format(cur.rowcount))
+
+        cur.execute('SELECT rpt.refresh_fct_game_team()')
+        log.info('fct_game_team =>{0}'.format(cur.fetchone()[0]))
+
+        cur.execute('SELECT rpt.refresh_fct_game_player()')
+        log.info('fct_game_player =>{0}'.format(cur.fetchone()[0]))
+
+        conn.commit()
+    except Exception, e:
+        log.error('error refreshing RPT objects')
+        log.error('Try refreshing DIMs, FCTs and MVWs again')
 
 
 def get_team_abbrv(team_id):
@@ -282,7 +294,7 @@ ch.setLevel(logging.INFO)
 th = TimedRotatingFileHandler(log_file,
                               when="midnight",
                               interval=1,
-                              backupCount=5)
+                              backupCount=30)
 
 th.setLevel(logging.DEBUG)
 
