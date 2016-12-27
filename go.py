@@ -40,7 +40,7 @@ def update_schedule():
     # find if any game processed and finished for this season
     sql = "SELECT " \
           "  MAX(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
-          "FROM lnd.schedule_game_header " \
+          "FROM lnd.mvw_schedule_game_header " \
           "WHERE game_status_text = 'Final' " \
           "  AND _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
