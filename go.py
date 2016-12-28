@@ -38,7 +38,7 @@ def get_player_news():
     sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_player_news'
     cur = c.conn.cursor()
     cur.execute(sql)
-    conn.commit()
+    c.conn.commit()
 
 def get_players_from_game(game_id, team_id):
     sql = "SELECT DISTINCT player_id, player_name, team_id, team_abbreviation " \
@@ -217,6 +217,8 @@ def refresh_team_roster_coaches():
             c.m_to_sql(tr.roster(), {'team_id': t[0], 'season': season, 'table_name': 'team_common_roster'})
             c.m_to_sql(tr.coaches(), {'team_id': t[0], 'season': season, 'table_name': 'team_coaches'})
 
+    c.log.info('updating landing materialized views')
+    c.refresh_mviews()
 
 def get_games():
     c.log.info('getting games to be processed which has never been processed')
@@ -323,6 +325,8 @@ def process_team(team_id):
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
+        if m.measure_type == 'pass':
+            continue
         c.log.debug('running team endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
 
         try:
