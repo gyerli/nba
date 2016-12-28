@@ -1,13 +1,17 @@
+#!/usr/bin/python
+
 import pandas as pd
 import json
-from requests import get
+import requests 
 
-url = 'http://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2016/league/00_full_schedule.json'
+url_schedule = 'http://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2016/league/00_full_schedule.json'
+url_news = 'http://stats-prod.nba.com/wp-json/statscms/v1/rotowire/player/'
 
-_json = get(url).json()
-_df = pd.DataFrame(_json)
+response = requests.get(url_news)
+data = json.loads(response.text)
 
-x = json.loads(_js)
+pn = data['ListItems']
 
-for i in _df:
-    print i
+df_news = pd.DataFrame(pn)
+
+print df_news
