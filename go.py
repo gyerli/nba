@@ -11,13 +11,15 @@ import requests
 import json
 import pandas as pd
 
-from nba_py import player as _player
+# from nba_py import player as _player
 from nba_py import constants as _constants
 from nba_py import shotchart as _shotchart
 
 import gamev2 as _game
 import teamv2 as _team
+import playerv2 as _player
 import common as c
+
 
 def get_player_news():
     url = 'http://stats-prod.nba.com/wp-json/statscms/v1/rotowire/player/'

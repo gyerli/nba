@@ -243,8 +243,8 @@ def refresh_rpt_mviews():
         cur.execute('SELECT rpt.refresh_dim_player_team_history()')
         log.info('dim_player_team_history =>{0}'.format(cur.fetchone()[0]))
 
-        cur.execute('REFRESH MATERIALIZED VIEW rpt.mvw_player_schedule')
-        log.info('mvw_player_schedule =>{0}'.format(cur.rowcount))
+        cur.execute('SELECT rpt.refresh_dim_player_schedule()')
+        log.info('dim_player_schedule =>{0}'.format(cur.fetchone()[0]))
 
         cur.execute('SELECT rpt.refresh_fct_game_team()')
         log.info('fct_game_team =>{0}'.format(cur.fetchone()[0]))
