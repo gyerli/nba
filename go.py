@@ -21,6 +21,24 @@ import playerv2 as _player
 import common as c
 
 
+def update_hustle_stats():
+    endpoint = _player.HustleStatsPlayer(season=g_season,season_type=g_season_type)
+    df_hustle = endpoint.overall()
+
+    df_hustle.columns = map(unicode.lower, df_hustle.columns)
+    c.check_db_column(df_hustle, 'player_hustle_stats')
+    df_hustle['_season'] = g_season
+    df_hustle['_season_type'] = g_season_type
+    df_hustle['_create_date'] = datetime.datetime.now()
+
+    df_hustle.to_sql(name='player_hustle_stats', con=c.engine, schema='lnd', if_exists='append', index=False)
+
+    sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_player_hustle_stats'
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    c.conn.commit()
+
+
 def get_player_news():
     url = 'http://stats-prod.nba.com/wp-json/statscms/v1/rotowire/player/'
 
@@ -41,6 +59,7 @@ def get_player_news():
     cur = c.conn.cursor()
     cur.execute(sql)
     c.conn.commit()
+
 
 def get_players_from_game(game_id, team_id):
     sql = "SELECT DISTINCT player_id, player_name, team_id, team_abbreviation " \
@@ -423,6 +442,10 @@ def main():
         get_player_news()
         sys.exit(0)
 
+    c.log.info('updating player hustle stats')
+    update_hustle_stats()
+    sys.exit(0)
+
     dt = c.get_season_dates()
 
     g_season_start_date = dt[0]
@@ -449,6 +472,7 @@ def main():
         sys.exit(0)
 
     update_schedule()
+    update_hustle_stats()
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()
