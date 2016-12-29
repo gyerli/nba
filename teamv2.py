@@ -452,6 +452,75 @@ class TeamPassTracking(_TeamDashboard):
     def passes_recieved(self):
         return _api_scrape(self.json, 1)
 
+class HustleStatsTeam:
+    _endpoint = 'leaguehustlestatsteam'
+
+    def __init__(self,
+                 college=College.Default,
+                 conference=Conference.Default,
+                 country=Country.Default,
+                 date_from=DateFrom.Default,
+                 date_to=DateTo.Default,
+                 division=Division.Default,
+                 draft_pick=DraftPick.Default,
+                 draft_year=DraftYear.Default,
+                 game_scope=Game_Scope.Default,
+                 height=Height.Default,
+                 last_n_games=LastNGames.Default,
+                 location=Location.Default,
+                 outcome=Outcome.Default,
+                 pace_adjust=PaceAdjust.Default,
+                 player_experience=PlayerExperience.Default,
+                 player_position=PlayerPosition.Default,
+                 plus_minus=PlusMinus.Default,
+                 rank=Rank.Default,
+                 vs_conference=VsConference.Default,
+                 vs_division=VsDivision.Default,
+                 weight=Weight.Default,
+                 po_round=PlayoffRound.Default,
+                 opponent_team_id=OpponentTeamID.Default,
+                 month=Month.Default,
+                 league_id=League.Default,
+                 per_mode=PerMode.Default,
+                 season=CURRENT_SEASON,
+                 season_segment=SeasonSegment.Default,
+                 season_type=SeasonType.Default,
+                 team_id=0):
+
+        self.json = _get_json(endpoint=self._endpoint,
+                              params={'College': college,
+                                      'Conference': conference,
+                                      'Country': country,
+                                      'DateFrom': date_from,
+                                      'DateTo': date_to,
+                                      'Division': division,
+                                      'DraftPick': draft_pick,
+                                      'DraftYear': draft_year,
+                                      'GameScope': game_scope,
+                                      'Height': height,
+                                      'LastNGames': last_n_games,
+                                      'Location': location,
+                                      'Outcome': outcome,
+                                      'PaceAdjust': pace_adjust,
+                                      'PlayerExperience': player_experience,
+                                      'PlayerPosition': player_position,
+                                      'PlusMinus': plus_minus,
+                                      'Rank': rank,
+                                      'VsConference': vs_conference,
+                                      'VsDivision': vs_division,
+                                      'Weight': weight,
+                                      'PORound': po_round,
+                                      'OpponentTeamID': opponent_team_id,
+                                      'Month': month,
+                                      'LeagueID': league_id,
+                                      'PerMode': per_mode,
+                                      'Season': season,
+                                      'SeasonSegment': season_segment,
+                                      'SeasonType': season_type,
+                                      'TeamID': team_id})
+
+    def overall(self):
+        return _api_scrape(self.json, 0)
 
 class TeamVsPlayer:
     _endpoint = 'teamvsplayer'
