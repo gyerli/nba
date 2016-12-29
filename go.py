@@ -22,6 +22,7 @@ import common as c
 
 
 def update_hustle_stats():
+    c.log.info('updating player hustle stats')
     endpoint = _player.HustleStatsPlayer(season=g_season,season_type=g_season_type)
     df_hustle = endpoint.overall()
 
@@ -442,9 +443,6 @@ def main():
         get_player_news()
         sys.exit(0)
 
-    c.log.info('updating player hustle stats')
-    update_hustle_stats()
-    sys.exit(0)
 
     dt = c.get_season_dates()
 
