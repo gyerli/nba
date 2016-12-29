@@ -7,14 +7,58 @@ import time
 import argparse
 import inspect
 import traceback
+import requests
+import json
+import pandas as pd
 
-from nba_py import player as _player
+# from nba_py import player as _player
 from nba_py import constants as _constants
 from nba_py import shotchart as _shotchart
 
 import gamev2 as _game
 import teamv2 as _team
+import playerv2 as _player
 import common as c
+
+
+def update_hustle_stats():
+    endpoint = _player.HustleStatsPlayer(season=g_season,season_type=g_season_type)
+    df_hustle = endpoint.overall()
+
+    df_hustle.columns = map(unicode.lower, df_hustle.columns)
+    c.check_db_column(df_hustle, 'player_hustle_stats')
+    df_hustle['_season'] = g_season
+    df_hustle['_season_type'] = g_season_type
+    df_hustle['_create_date'] = datetime.datetime.now()
+
+    df_hustle.to_sql(name='player_hustle_stats', con=c.engine, schema='lnd', if_exists='append', index=False)
+
+    sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_player_hustle_stats'
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    c.conn.commit()
+
+
+def get_player_news():
+    url = 'http://stats-prod.nba.com/wp-json/statscms/v1/rotowire/player/'
+
+    response = requests.get(url)
+    data = json.loads(response.text)
+
+    news = data['ListItems']
+    df_news = pd.DataFrame(news)
+    df_news.columns = map(unicode.lower, df_news.columns)
+    c.check_db_column(df_news, 'player_news')
+    df_news['_season'] = g_season
+    df_news['_season_type'] = g_season_type
+    df_news['_create_date'] = datetime.datetime.now()
+
+    df_news.to_sql(name='player_news',con=c.engine, schema='lnd', if_exists='append', index=False)
+    
+    sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_player_news'
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    c.conn.commit()
 
 
 def get_players_from_game(game_id, team_id):
@@ -194,6 +238,8 @@ def refresh_team_roster_coaches():
             c.m_to_sql(tr.roster(), {'team_id': t[0], 'season': season, 'table_name': 'team_common_roster'})
             c.m_to_sql(tr.coaches(), {'team_id': t[0], 'season': season, 'table_name': 'team_coaches'})
 
+    c.log.info('updating landing materialized views')
+    c.refresh_mviews()
 
 def get_games():
     c.log.info('getting games to be processed which has never been processed')
@@ -300,6 +346,8 @@ def process_team(team_id):
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
+        if m.measure_type == 'pass':
+            continue
         c.log.debug('running team endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
 
         try:
@@ -323,6 +371,10 @@ def process_player(player_id, team_id):
     _measures = c.get_measures('player')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
+        # if rotowire entry do not process
+        # rotowire news retrieved every 15 minutes after 12pm through 22pm
+        if m.measure_type == 'pass':
+            continue
         c.log.debug('running player endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
 
         try:
@@ -369,6 +421,7 @@ def main():
     parser.add_argument('-r', '--roster', help='Refresh team roster and coaches', action='store_true')
     parser.add_argument('-p', '--players', help='Refresh player list', action='store_true')
     parser.add_argument('-d', '--debug', help='Debugging flag', action='store_true')
+    parser.add_argument('-n', '--news', help='Get NBA fantasy news only', action='store_true')
 
     args = vars(parser.parse_args())
 
@@ -383,6 +436,15 @@ def main():
 
     c.g_season = g_season
     c.g_season_type = g_season_type
+
+    if args['news']:
+        c.log.info('getting player rotowire news and exiting')
+        get_player_news()
+        sys.exit(0)
+
+    c.log.info('updating player hustle stats')
+    update_hustle_stats()
+    sys.exit(0)
 
     dt = c.get_season_dates()
 
@@ -410,6 +472,7 @@ def main():
         sys.exit(0)
 
     update_schedule()
+    update_hustle_stats()
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()
