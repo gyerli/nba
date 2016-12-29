@@ -43,17 +43,17 @@ def update_hustle_stats():
     df_hustle_team = endpoint.overall()
 
     df_hustle_team.columns = map(unicode.lower, df_hustle_team.columns)
-    # c.check_db_column(df_hustle_team, 'team_hustle_stats')
+    c.check_db_column(df_hustle_team, 'team_hustle_stats')
     df_hustle_team['_season'] = g_season
     df_hustle_team['_season_type'] = g_season_type
     df_hustle_team['_create_date'] = datetime.datetime.now()
 
     df_hustle_team.to_sql(name='team_hustle_stats', con=c.engine, schema='lnd', if_exists='append', index=False)
 
-    # sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_team_hustle_stats'
-    # cur = c.conn.cursor()
-    # cur.execute(sql)
-    # c.conn.commit()
+    sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_team_hustle_stats'
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    c.conn.commit()
 
 
 def get_player_news():
@@ -454,6 +454,7 @@ def main():
     c.g_season = g_season
     c.g_season_type = g_season_type
 
+
     if args['news']:
         c.log.info('getting player rotowire news and exiting')
         get_player_news()
@@ -485,8 +486,8 @@ def main():
         refresh_players()
         sys.exit(0)
 
-    update_schedule()
     update_hustle_stats()
+    update_schedule()
 
     c.log.info('starting games'.center(80, '#'))
     games = get_games()
