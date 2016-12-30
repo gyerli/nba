@@ -4,7 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 import psycopg2 as pg
 from sqlalchemy import create_engine
 import os
-
+import traceback
 
 class reg(object):
     def __init__(self, cursor, row):
@@ -256,6 +256,7 @@ def refresh_rpt_mviews():
     except Exception, e:
         log.error('error refreshing RPT objects')
         log.error('Try refreshing DIMs, FCTs and MVWs again')
+        log.error(traceback.format_exc())
 
 
 def get_team_abbrv(team_id):

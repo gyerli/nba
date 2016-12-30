@@ -22,7 +22,7 @@ import common as c
 
 
 def update_hustle_stats():
-    c.log.info('updating player hustle stats')
+    c.log.info('updating player hustle stats'.center(80,'+'))
     endpoint = _player.HustleStatsPlayer(season=g_season,season_type=g_season_type)
     df_hustle = endpoint.overall()
 
@@ -39,6 +39,7 @@ def update_hustle_stats():
     cur.execute(sql)
     c.conn.commit()
 
+    c.log.info('updating team hustle stats'.center(80,'+'))
     endpoint = _team.HustleStatsTeam(season=g_season,season_type=g_season_type)
     df_hustle_team = endpoint.overall()
 
@@ -453,7 +454,6 @@ def main():
 
     c.g_season = g_season
     c.g_season_type = g_season_type
-
 
     if args['news']:
         c.log.info('getting player rotowire news and exiting')
