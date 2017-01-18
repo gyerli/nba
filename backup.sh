@@ -11,8 +11,6 @@ for i in $databases; do
   if [ "$i" != "template0" ] && [ "$i" != "template1" ]; then
     echo Dumping $i to $backup_dir$i\_$backup_date.dmp
     pg_dump -U postgres -Fc $i > $backup_dir$i\_$backup_date.dmp
-    gzip $backup_dir$i\_$backup_date.dmp
-    echo compressing $backup_dir$i\_$backup_date.dmp
   fi
 done
 find $backup_dir -type f -prune -mtime +$number_of_days -exec rm -f {} \;

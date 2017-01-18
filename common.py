@@ -1,10 +1,12 @@
 import datetime
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import psycopg2 as pg
-from sqlalchemy import create_engine
 import os
 import traceback
+
+from logging.handlers import TimedRotatingFileHandler
+from sqlalchemy import create_engine
+
 
 class reg(object):
     def __init__(self, cursor, row):
@@ -243,14 +245,14 @@ def refresh_rpt_mviews():
         cur.execute('SELECT rpt.refresh_dim_player_team_history()')
         log.info('dim_player_team_history =>{0}'.format(cur.fetchone()[0]))
 
-        cur.execute('SELECT rpt.refresh_dim_player_schedule()')
-        log.info('dim_player_schedule =>{0}'.format(cur.fetchone()[0]))
-
         cur.execute('SELECT rpt.refresh_fct_game_team()')
         log.info('fct_game_team =>{0}'.format(cur.fetchone()[0]))
 
         cur.execute('SELECT rpt.refresh_fct_game_player()')
         log.info('fct_game_player =>{0}'.format(cur.fetchone()[0]))
+
+        cur.execute('SELECT rpt.refresh_dim_player_schedule()')
+        log.info('dim_player_schedule =>{0}'.format(cur.fetchone()[0]))
 
         conn.commit()
     except Exception, e:

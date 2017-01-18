@@ -364,6 +364,9 @@ def process_team(team_id):
     _measures = c.get_measures('team')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
+        # if rotowire entry or other one a day entry then do not process
+        # rotowire news retrieved every 15 minutes after 12pm through 22pm
+        # hustle stats are processed at the beggining of the process
         if m.measure_type == 'pass':
             continue
         c.log.debug('running team endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
@@ -389,8 +392,9 @@ def process_player(player_id, team_id):
     _measures = c.get_measures('player')
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
-        # if rotowire entry do not process
+        # if rotowire entry or other one a day entry then do not process
         # rotowire news retrieved every 15 minutes after 12pm through 22pm
+        # hustle stats are processed at the beggining of the process
         if m.measure_type == 'pass':
             continue
         c.log.debug('running player endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
@@ -480,10 +484,12 @@ def main():
 
     if args['roster']:
         refresh_team_roster_coaches()
+        c.end_run(g_run_id, 'COMPLETED')
         sys.exit(0)
 
     if args['players']:
         refresh_players()
+        c.end_run(g_run_id, 'COMPLETED')
         sys.exit(0)
 
     update_hustle_stats()
