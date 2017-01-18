@@ -22,8 +22,8 @@ import common as c
 
 
 def update_hustle_stats():
-    c.log.info('updating player hustle stats'.center(80,'+'))
-    endpoint = _player.HustleStatsPlayer(season=g_season,season_type=g_season_type)
+    c.log.info('updating player hustle stats'.center(80, '+'))
+    endpoint = _player.HustleStatsPlayer(season=g_season, season_type=g_season_type)
     df_hustle = endpoint.overall()
 
     df_hustle.columns = map(unicode.lower, df_hustle.columns)
@@ -39,8 +39,8 @@ def update_hustle_stats():
     cur.execute(sql)
     c.conn.commit()
 
-    c.log.info('updating team hustle stats'.center(80,'+'))
-    endpoint = _team.HustleStatsTeam(season=g_season,season_type=g_season_type)
+    c.log.info('updating team hustle stats'.center(80, '+'))
+    endpoint = _team.HustleStatsTeam(season=g_season, season_type=g_season_type)
     df_hustle_team = endpoint.overall()
 
     df_hustle_team.columns = map(unicode.lower, df_hustle_team.columns)
@@ -71,8 +71,8 @@ def get_player_news():
     df_news['_season_type'] = g_season_type
     df_news['_create_date'] = datetime.datetime.now()
 
-    df_news.to_sql(name='player_news',con=c.engine, schema='lnd', if_exists='append', index=False)
-    
+    df_news.to_sql(name='player_news', con=c.engine, schema='lnd', if_exists='append', index=False)
+
     sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_player_news'
     cur = c.conn.cursor()
     cur.execute(sql)
@@ -97,7 +97,7 @@ def get_player_name(player_id):
           "  FROM lnd.mvw_player_common " \
           " WHERE person_id = '{0}' ".format(player_id)
 
-    c.log.debug(sql)
+    # c.log.debug(sql)
     cur = c.conn.cursor()
     cur.execute(sql)
     return cur.fetchone()[0]
@@ -118,6 +118,7 @@ def update_schedule():
           "  AND _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
+    c.log.debug(sql)
     cur.execute(sql)
     last_processed_game_dt = cur.fetchone()[0]
 
@@ -131,6 +132,7 @@ def update_schedule():
           "  AND _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
+    c.log.debug(sql)
     cur.execute(sql)
     not_processed_game_dt = cur.fetchone()[0]
 
@@ -141,6 +143,7 @@ def update_schedule():
           "WHERE _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
+    c.log.debug(sql)
     cur.execute(sql)
     last_game_dt = cur.fetchone()[0]
     if last_game_dt is None:
@@ -181,7 +184,7 @@ def update_schedule():
 
     c.log.info('adjusted start date: {0}'.format(start_dt.strftime("%Y-%m-%d")))
     c.log.info('adjusted end date: {0}'.format(end_dt.strftime("%Y-%m-%d")))
-    
+
     while start_dt <= end_dt:
         c.log.info('getting games for the date => {0}'.format(start_dt.strftime("%Y%m%d")))
         c.start_log(run_id=g_run_id, node='schedule', node_name=start_dt.strftime("%Y%m%d"),
@@ -299,6 +302,20 @@ def get_games():
     return cur
 
 
+def process_game_measures(p_game_id, p_endpoint, p_measure, p_table_name, p_type):
+
+    c.log.debug('game:{gid} endpoint:{ep}, measure:{m}'.format(gid=p_game_id, ep=p_endpoint, m=p_measure))
+    g_params = {'game_id': p_game_id, 'table_name': p_table_name}
+    try:
+        endpoint = getattr(_game, p_endpoint)(game_id=p_game_id)
+        df = getattr(endpoint, p_measure)()
+        c.g_to_sql(df, g_params)
+    except (Exception, KeyboardInterrupt):
+        c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
+        c.log.error(traceback.format_exc())
+        raise Exception('Error processing game: {0}'.format(p_game_id))
+
+
 def process_game(game_id):
     # check if this game stats are already in
     # game stats need to be processed only once
@@ -309,20 +326,15 @@ def process_game(game_id):
         return 0
 
     _measures = c.get_measures('game')
+    pool = c.ThreadPool(_measures.rowcount)
     for _measure in _measures.fetchall():
         m = c.reg(_measures, _measure)
-        c.log.debug('running game endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
-        g_params = {'game_id': game_id, 'table_name': m.table_name}
-        try:
-            endpoint = getattr(_game, m.endpoint)(game_id=game_id)
-            # if m.measure == 'season_series':
-            #     raise Exception('Debugging exceptions "season series"')
-            df = getattr(endpoint, m.measure)()
-            c.g_to_sql(df, g_params)
-        except (Exception, KeyboardInterrupt):
-            c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(traceback.format_exc())
-            raise Exception('Error processing game: {0}'.format(game_id))
+
+        pool.add_task(process_game_measures, p_game_id=game_id, p_endpoint=m.endpoint, p_measure=m.measure,
+                      p_table_name=m.table_name, p_type=m.measure_type)
+
+    pool.wait_completion()
+
     return _measures.rowcount
 
 
@@ -333,6 +345,7 @@ def get_game_status(game_id):
           "   AND node_key = '{0}' " \
           "   AND node_status = 'COMPLETED' ".format(game_id)
 
+    c.log.debug(sql)
     cur = c.conn.cursor()
     cur.execute(sql)
     return cur.rowcount > 0
@@ -348,6 +361,7 @@ def get_node_status(node, node_key):
           "   AND season_type = '{4}' " \
           "   AND node_status = 'COMPLETED' ".format(node, node_key, g_run_id, g_season, g_season_type)
 
+    c.log.debug(sql)
     cur = c.conn.cursor()
     cur.execute(sql)
     return cur.rowcount > 0
@@ -364,6 +378,7 @@ def get_player_status(player_id, team_id):
           "   AND season_type = '{4}' " \
           "   AND node_status = 'COMPLETED' ".format(player_id, team_id, g_run_id, g_season, g_season_type)
 
+    c.log.debug(sql)
     cur = c.conn.cursor()
     cur.execute(sql)
     return cur.rowcount > 0
@@ -403,7 +418,8 @@ def process_team(team_id):
         if m.measure_type == 'pass':
             continue
 
-        pool.add_task(process_team_measures, p_team_id=team_id, p_endpoint=m.endpoint, p_measure=m.measure, p_table_name=m.table_name, p_type=m.measure_type)
+        pool.add_task(process_team_measures, p_team_id=team_id, p_endpoint=m.endpoint, p_measure=m.measure,
+                      p_table_name=m.table_name, p_type=m.measure_type)
 
     pool.wait_completion()
 
@@ -422,7 +438,10 @@ def process_player(player_id, team_id):
         # hustle stats are processed at the beginning of the process
         if m.measure_type == 'pass':
             continue
-        c.log.debug('player:{pid} endpoint:{ep}, measure:{m}, type:{mt}'.format(ep=m.endpoint, m=m.measure, pid=player_id, mt=m.measure_type))
+
+        c.log.debug(
+            'player:{pid} endpoint:{ep}, measure:{m}, type:{mt}'.format(ep=m.endpoint, m=m.measure, pid=player_name,
+                                                                        mt=m.measure_type))
 
         try:
             if m.measure_type == 'self' and m.measure_category == '1':
@@ -623,7 +642,7 @@ def main():
 
                     try:  # this is visitor team players' try
                         v_pool.add_task(process_player, player_id=p.player_id, team_id=g.visitor_team_id)
-                        #process_player(player_id=p.player_id, team_id=g.visitor_team_id)
+                        # process_player(player_id=p.player_id, team_id=g.visitor_team_id)
                         # c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                         #           group_status='N/A', cnt=player_measure_count)
 
