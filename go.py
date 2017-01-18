@@ -91,7 +91,8 @@ def get_players_from_game(game_id, team_id):
     cur.execute(sql)
     return cur
 
-def get_player_name(player_id)
+
+def get_player_name(player_id):
     sql = "SELECT display_first_last " \
           "  FROM lnd.mvw_player_common " \
           " WHERE person_id = '{0}' ".format(player_id)
