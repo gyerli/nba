@@ -100,7 +100,10 @@ def get_player_name(player_id):
     # c.log.debug(sql)
     cur = c.conn.cursor()
     cur.execute(sql)
-    return cur.fetchone()[0]
+    if cur.rowcount > 0:
+        return cur.fetchone()[0]
+    else:
+        return 'Unknown Player (for now)'
 
 
 def update_schedule():
