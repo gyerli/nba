@@ -259,6 +259,7 @@ def refresh_team_roster_coaches():
     c.log.info('updating landing materialized views')
     c.refresh_mviews()
 
+
 def get_games():
     c.log.info('getting games to be processed which has never been processed')
 
@@ -397,7 +398,7 @@ def process_player(player_id, team_id):
         # hustle stats are processed at the beggining of the process
         if m.measure_type == 'pass':
             continue
-        c.log.debug('running player endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure))
+        c.log.debug('running player (2} endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure, player_id))
 
         try:
             if m.measure_type == 'self' and m.measure_category == '1':
@@ -409,7 +410,7 @@ def process_player(player_id, team_id):
                                                         measure_type=m.measure_type)
             df = getattr(endpoint, m.measure)()
             p_params = {'player_id': player_id, 'team_id': team_id, 'table_name': m.table_name}
-            c.p_to_sql(df, p_params)
+            # c.p_to_sql(df, p_params)
 
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
