@@ -398,7 +398,7 @@ def process_player(player_id, team_id):
         # hustle stats are processed at the beggining of the process
         if m.measure_type == 'pass':
             continue
-        c.log.debug('running player (2} endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure, player_id))
+        c.log.info('running player {2} endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure, player_id))
 
         try:
             if m.measure_type == 'self' and m.measure_category == '1':
