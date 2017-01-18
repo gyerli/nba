@@ -398,7 +398,7 @@ def process_player(player_id, team_id):
         # hustle stats are processed at the beggining of the process
         if m.measure_type == 'pass':
             continue
-        c.log.debug('running player (2} endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure, player_id))
+        c.log.debug('running player {2} endpoint => {0}, measure => {1}'.format(m.endpoint, m.measure, player_id))
 
         try:
             if m.measure_type == 'self' and m.measure_category == '1':
@@ -410,7 +410,7 @@ def process_player(player_id, team_id):
                                                         measure_type=m.measure_type)
             df = getattr(endpoint, m.measure)()
             p_params = {'player_id': player_id, 'team_id': team_id, 'table_name': m.table_name}
-            # c.p_to_sql(df, p_params)
+            c.p_to_sql(df, p_params)
 
         except (Exception, KeyboardInterrupt):
             c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
@@ -464,7 +464,6 @@ def main():
         c.log.info('getting player rotowire news and exiting')
         get_player_news()
         sys.exit(0)
-
 
     dt = c.get_season_dates()
 
@@ -528,6 +527,7 @@ def main():
 
                 c.log.info('processing home team players')
                 players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
+                h_pool = c.ThreadPool(players.rowcount)
                 for player in players.fetchall():
                     p = c.reg(players, player)
                     if get_player_status(p.player_id, g.home_team_id):
@@ -538,15 +538,14 @@ def main():
                     c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
                                 parent_key=g.home_team_id, node_status='IN PROGRESS')
                     try:  # this is home team players' try
-                        player_measure_count = process_player(player_id=p.player_id, team_id=g.home_team_id)
+                        player_measure_count = 0
+                        h_pool.add_task(process_player, player_id=p.player_id, team_id=g.home_team_id)
                         c.log.debug('total {0} measures processed'.format(player_measure_count))
                         # if p.player_id == 201142:
                         #     raise Exception('Debugging game completion')
 
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A', cnt=player_measure_count)
-                        if g_debug:
-                            time.sleep(0.25)
 
                     except (Exception, KeyboardInterrupt):  # this is home team players' exception
                         c.log.error('error processing home team players:{0}'.format(g.home_team_id))
@@ -558,6 +557,8 @@ def main():
                         c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
                                   cnt=0)
                         raise Exception('Error processing player')
+
+                h_pool.wait_completion()
 
             except (Exception, KeyboardInterrupt):  # this is home team exception
                 c.log.error('error processing home team:{0}'.format(g.home_team_id))
@@ -583,6 +584,7 @@ def main():
 
                 c.log.info('processing visitor team players')
                 players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
+                v_pool = c.ThreadPool(players.rowcount)
                 for player in players.fetchall():
                     p = c.reg(players, player)
                     if get_player_status(p.player_id, g.visitor_team_id):
@@ -594,12 +596,12 @@ def main():
                                 parent_key=g.visitor_team_id, node_status='IN PROGRESS')
 
                     try:  # this is visitor team players' try
-                        player_measure_count = process_player(player_id=p.player_id, team_id=g.visitor_team_id)
+                        player_measure_count = 0
+                        v_pool.add_task(process_player, player_id=p.player_id, team_id=g.visitor_team_id)
+                        #process_player(player_id=p.player_id, team_id=g.visitor_team_id)
                         c.log.debug('total {0} measures processed'.format(player_measure_count))
                         c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
                                   group_status='N/A', cnt=player_measure_count)
-                        if g_debug:
-                            time.sleep(0.25)
 
                     except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
                         c.log.error('error processing visitor team players:{0}'.format(g.visitor_team_id))
@@ -611,6 +613,8 @@ def main():
                         c.end_log(run_id=g_run_id, node='game', key=g.game_id, status=None, group_status='FAILED',
                                   cnt=0)
                         raise Exception('Error processing player')
+
+                v_pool.wait_completion()
 
             except (Exception, KeyboardInterrupt):  # this is visitor team exception
                 c.log.error('error processing visitor team:{0}'.format(g.visitor_team_id))
