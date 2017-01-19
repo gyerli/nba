@@ -93,9 +93,10 @@ def get_players_from_game(game_id, team_id):
 
 
 def get_player_name(player_id):
-    sql = "SELECT display_first_last " \
-          "  FROM lnd.mvw_player_common " \
-          " WHERE person_id = '{0}' ".format(player_id)
+    sql = "SELECT player_name " \
+          "  FROM lnd.game_player_stats " \
+          " WHERE player_id = '{id}' " \
+          " LIMIT 1 ".format(id=player_id)
 
     # c.log.debug(sql)
     cur = c.conn.cursor()
@@ -306,7 +307,6 @@ def get_games():
 
 
 def process_game_measures(p_game_id, p_endpoint, p_measure, p_table_name, p_type):
-
     c.log.debug('game:{gid} endpoint:{ep}, measure:{m}'.format(gid=p_game_id, ep=p_endpoint, m=p_measure))
     g_params = {'game_id': p_game_id, 'table_name': p_table_name}
     try:
@@ -563,19 +563,16 @@ def main():
 
             try:  # this is team try for home team
                 home_team_name = c.get_team_abbrv(g.home_team_id)
-                c.log.info('processing home team:{0} ({1})'.format(home_team_name, g.home_team_id))
+                c.log.info('home team:{tm} id:{id}'.format(tm=home_team_name, id=g.home_team_id))
                 c.start_log(run_id=g_run_id, node='team', node_name=home_team_name, node_key=g.home_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
-
-                # if g.home_team_id  == 1610612757:
-                #     raise Exception('Debugging team completion')
 
                 home_team_measure_count = process_team(g.home_team_id)
                 c.log.debug('total {0} measures processed'.format(home_team_measure_count))
                 c.end_log(run_id=g_run_id, node='team', key=g.home_team_id, status='COMPLETED',
                           group_status='N/A', cnt=home_team_measure_count)
 
-                c.log.info('processing home team players')
+                c.log.info('processing home team players'.center(80, '='))
                 players = get_players_from_game(game_id=g.game_id, team_id=g.home_team_id)
                 h_pool = c.ThreadPool(players.rowcount)
                 for player in players.fetchall():
@@ -583,18 +580,10 @@ def main():
                     if get_player_status(p.player_id, g.home_team_id):
                         continue
 
-                    c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
-                                                                            p.player_id))
-                    # c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
-                    #             parent_key=g.home_team_id, node_status='IN PROGRESS')
+                    c.log.info('player:{nm}, id:{id}, team:{tm}'.format(nm=p.player_name, tm=p.team_abbreviation,
+                                                                        id=p.player_id))
                     try:  # this is home team players' try
                         h_pool.add_task(process_player, player_id=p.player_id, team_id=g.home_team_id)
-                        # if p.player_id == 201142:
-                        #     raise Exception('Debugging game completion')
-
-                        # c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
-                        #           group_status='N/A', cnt=player_measure_count)
-
                     except (Exception, KeyboardInterrupt):  # this is home team players' exception
                         c.log.error('error processing home team players:{0}'.format(g.home_team_id))
                         c.log.error(traceback.format_exc())
@@ -621,7 +610,7 @@ def main():
 
             try:
                 visitor_team_name = c.get_team_abbrv(g.visitor_team_id)
-                c.log.info('processing visitor team:{0} ({1})'.format(visitor_team_name, g.visitor_team_id))
+                c.log.info('visitor team:{tm} id:{id}'.format(tm=visitor_team_name, id=g.visitor_team_id))
                 c.start_log(run_id=g_run_id, node='team', node_name=visitor_team_name, node_key=g.visitor_team_id,
                             parent_key=g.game_id, node_status='IN PROGRESS')
 
@@ -630,25 +619,17 @@ def main():
                 c.end_log(run_id=g_run_id, node='team', key=g.visitor_team_id, status='COMPLETED',
                           group_status='N/A', cnt=visitor_team_measure_count)
 
-                c.log.info('processing visitor team players')
+                c.log.info('processing visitor team players'.center(80, '='))
                 players = get_players_from_game(game_id=g.game_id, team_id=g.visitor_team_id)
                 v_pool = c.ThreadPool(players.rowcount)
                 for player in players.fetchall():
                     p = c.reg(players, player)
                     if get_player_status(p.player_id, g.visitor_team_id):
                         continue
-
-                    c.log.info('Processing player {0} ({1}) id=>{2}'.format(p.player_name, p.team_abbreviation,
-                                                                            p.player_id))
-                    # c.start_log(run_id=g_run_id, node='player', node_name=p.player_name, node_key=p.player_id,
-                    #             parent_key=g.visitor_team_id, node_status='IN PROGRESS')
-
+                    c.log.info('player:{nm}, id:{id}, team:{tm}'.format(nm=p.player_name, tm=p.team_abbreviation,
+                                                                        id=p.player_id))
                     try:  # this is visitor team players' try
                         v_pool.add_task(process_player, player_id=p.player_id, team_id=g.visitor_team_id)
-                        # process_player(player_id=p.player_id, team_id=g.visitor_team_id)
-                        # c.end_log(run_id=g_run_id, node='player', key=p.player_id, status='COMPLETED',
-                        #           group_status='N/A', cnt=player_measure_count)
-
                     except (Exception, KeyboardInterrupt):  # this is visitor team players' exception
                         c.log.error('error processing visitor team players:{0}'.format(g.visitor_team_id))
                         c.log.error(traceback.format_exc())
@@ -685,9 +666,9 @@ def main():
             c.end_run(g_run_id, 'FAILED')
             sys.exit(1)
     c.end_run(g_run_id, 'COMPLETED')
-    c.log.info('updating landing materialized views')
+    c.log.info('updating landing materialized views'.center(80, '#'))
     c.refresh_mviews()
-    c.log.info('updating reporting materialized views')
+    c.log.info('updating reporting materialized views'.center(80, '#'))
     c.refresh_rpt_mviews()
 
 
