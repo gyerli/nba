@@ -23,7 +23,7 @@ import common as c
 
 def update_hustle_stats():
     c.log.info('updating player hustle stats'.center(80, '+'))
-    endpoint = _player.HustleStatsPlayer(season=g_season, season_type=g_season_type)
+    endpoint = _player.PlayerHustleStats(season=g_season, season_type=g_season_type)
     df_hustle = endpoint.overall()
 
     df_hustle.columns = map(unicode.lower, df_hustle.columns)
@@ -429,6 +429,31 @@ def process_team(team_id):
     return _measures.rowcount
 
 
+def process_player_measures(p_player_id, p_team_id, p_endpoint, p_measure, p_table_name, p_type, p_category):
+    player_name = get_player_name(p_player_id)
+    c.log.debug(
+        'player:{pid} endpoint:{ep}, measure:{m}, type:{mt}'.format(ep=p_endpoint, m=p_measure, pid=player_name,
+                                                                    mt=p_type))
+
+    try:
+        if p_type == 'self' and p_category == '1':
+            endpoint = getattr(_player, p_endpoint)(player_id=p_player_id, season=g_season, season_type=g_season_type)
+        elif p_type == 'self':
+            endpoint = getattr(_player, p_endpoint)(player_id=p_player_id)
+        else:
+            endpoint = getattr(_player, p_endpoint)(player_id=p_player_id, season=g_season, season_type=g_season_type,
+                                                    measure_type=p_type)
+        df = getattr(endpoint, p_measure)()
+        print df
+        p_params = {'player_id': p_player_id, 'team_id': p_team_id, 'table_name': p_table_name}
+        c.p_to_sql(df, p_params)
+
+    except (Exception, KeyboardInterrupt):
+        c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
+        c.log.error(traceback.format_exc())
+        raise Exception('Error processing player: {0}'.format(p_player_id))
+
+
 def process_player(player_id, team_id):
     player_name = get_player_name(player_id)
     c.start_log(run_id=g_run_id, node='player', node_name=player_name, node_key=player_id,
@@ -442,26 +467,8 @@ def process_player(player_id, team_id):
         if m.measure_type == 'pass':
             continue
 
-        c.log.debug(
-            'player:{pid} endpoint:{ep}, measure:{m}, type:{mt}'.format(ep=m.endpoint, m=m.measure, pid=player_name,
-                                                                        mt=m.measure_type))
-
-        try:
-            if m.measure_type == 'self' and m.measure_category == '1':
-                endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type)
-            elif m.measure_type == 'self':
-                endpoint = getattr(_player, m.endpoint)(player_id=player_id)
-            else:
-                endpoint = getattr(_player, m.endpoint)(player_id=player_id, season=g_season, season_type=g_season_type,
-                                                        measure_type=m.measure_type)
-            df = getattr(endpoint, m.measure)()
-            p_params = {'player_id': player_id, 'team_id': team_id, 'table_name': m.table_name}
-            c.p_to_sql(df, p_params)
-
-        except (Exception, KeyboardInterrupt):
-            c.log.error('error processing measure in {0}'.format(inspect.stack()[0][3]))
-            c.log.error(traceback.format_exc())
-            raise Exception('Error processing player: {0}'.format(player_id))
+        process_player_measures(p_player_id=player_id, p_team_id=team_id, p_endpoint=m.endpoint, p_measure=m.measure,
+                                p_table_name=m.table_name, p_type=m.measure_type, p_category=m.measure_category)
 
     c.end_log(run_id=g_run_id, node='player', key=player_id, status='COMPLETED',
               group_status='N/A', cnt=_measures.rowcount)
@@ -469,6 +476,68 @@ def process_player(player_id, team_id):
     c.log.debug('total {0} measures processed'.format(_measures.rowcount))
     return _measures.rowcount
 
+
+def find_player_team_season(player_id, season):
+    p_sql = "SELECT " \
+            " team_id " \
+            "FROM (" \
+            "SELECT " \
+            "   player_id, season, team_id " \
+            "  ,row_number() over(PARTITION BY player_id, season ORDER BY rec_start_date desc) rn " \
+            "  FROM rpt.dim_player_team_history ) a " \
+            "WHERE a.rn = 1 " \
+            "  AND a.player_id = '{pid}' " \
+            "  AND a.season = '{s}' ".format(pid=player_id, s=season)
+
+    # c.log.debug(p_sql)
+    p_cur = c.conn.cursor()
+    p_cur.execute(p_sql)
+    return p_cur.fetchone()[0]
+
+
+def process_single_measure(p_measure):
+    sql = "SELECT node, endpoint, measure, measure_type, measure_category, available_year, table_name " \
+          "  FROM job.node " \
+          " WHERE table_name = '{m}'" \
+          "   AND active = True " \
+          "   AND available_year <= split_part('{s}','-',1)::integer ".format(m=p_measure, s=g_season)
+
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    if cur.rowcount != 1:
+        c.log.error('Invalid measure name (table_name): {tbl} or measure is not available for this season {s}'.format(
+            tbl=p_measure, s=g_season))
+        sys.exit(1)
+
+    measure = cur.fetchone()
+    c.log.info(measure)
+
+    if measure[0] == 'player':
+        process_player_single_measure(p_measure=measure)
+
+
+def process_player_single_measure(p_measure):
+    _node = p_measure[0]
+    _endpoint = p_measure[1]
+    _measure = p_measure[2]
+    _measure_type = p_measure[3]
+    _measure_category = p_measure[4]
+    _available_year = p_measure[5]
+    _table_name = p_measure[6]
+
+    d_sql = "SELECT DISTINCT player_id " \
+            "  FROM lnd.game_player_stats  " \
+            " WHERE _season = '{s}'".format(s=g_season)
+
+    # c.log.info(d_sql)
+    d_cur = c.conn.cursor()
+    d_cur.execute(d_sql)
+    players = d_cur.fetchall()
+    for player in players:
+        team_id = find_player_team_season(player_id=player[0], season=g_season)
+        process_player_measures(p_player_id=player[0], p_team_id=team_id, p_endpoint=_endpoint,
+                                p_measure=_measure,
+                                p_table_name=_table_name, p_type=_measure_type, p_category=_measure_category)
 
 ####################################################################################
 # M A I N  M O D U L E
@@ -495,6 +564,7 @@ def main():
     parser.add_argument('-p', '--players', help='Refresh player list', action='store_true')
     parser.add_argument('-d', '--debug', help='Debugging flag', action='store_true')
     parser.add_argument('-n', '--news', help='Get NBA fantasy news only', action='store_true')
+    parser.add_argument('-m', '--measure', help='Measure in the node table (table_name)', required=True)
 
     args = vars(parser.parse_args())
 
@@ -513,6 +583,12 @@ def main():
     if args['news']:
         c.log.info('getting player rotowire news and exiting')
         get_player_news()
+        sys.exit(0)
+
+    if args['measure'] is not None:
+        c.log.info('processing a single measure'.center(80, '*'))
+        c.log.info('measure:{m}'.format(m=args['measure']))
+        process_single_measure(args['measure'])
         sys.exit(0)
 
     dt = c.get_season_dates()

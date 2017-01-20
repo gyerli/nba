@@ -964,7 +964,7 @@ class PlayerReboundLogTracking(_PlayerDashboard):
     _endpoint = 'playerdashptreboundlogs'
 
 
-class HustleStatsPlayer:
+class PlayerHustleStats:
     _endpoint = 'leaguehustlestatsplayer'
 
     def __init__(self,
@@ -1153,3 +1153,49 @@ class PlayerVsPlayer:
 
     def vs_player_info(self):
         return _api_scrape(self.json, 9)
+
+
+class PlayerDefendingShots:
+    _endpoint = 'playerdashptshotdefend'
+
+    def __init__(self,
+                 player_id,
+                 date_from=DateFrom.Default,
+                 date_to=DateTo.Default,
+                 game_segment=GameSegment.Default,
+                 last_n_games=LastNGames.Default,
+                 league_id=League.Default,
+                 location=Location.Default,
+                 month=Month.Default,
+                 opponent_team_id=OpponentTeamID.Default,
+                 outcome=Outcome.Default,
+                 per_mode=PerMode.Default,
+                 period=Period.Default,
+                 season=CURRENT_SEASON,
+                 season_segment=SeasonSegment.Default,
+                 season_type=SeasonType.Default,
+                 team_id=0,
+                 vs_conference=VsConference.Default,
+                 vs_division=VsDivision.Default):
+        self.json = _get_json(endpoint=self._endpoint,
+                              params={'PlayerID': player_id,
+                                      'TeamID': team_id,
+                                      'PerMode': per_mode,
+                                      'LeagueID': league_id,
+                                      'Season': season,
+                                      'SeasonType': season_type,
+                                      'Outcome': outcome,
+                                      'Location': location,
+                                      'Month': month,
+                                      'SeasonSegment': season_segment,
+                                      'DateFrom': date_from,
+                                      'DateTo': date_to,
+                                      'OpponentTeamID': opponent_team_id,
+                                      'VsConference': vs_conference,
+                                      'VsDivision': vs_division,
+                                      'GameSegment': game_segment,
+                                      'Period': period,
+                                      'LastNGames': last_n_games})
+
+    def overall(self):
+        return _api_scrape(self.json, 0)
