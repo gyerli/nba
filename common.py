@@ -180,8 +180,19 @@ def get_measures(node):
 #   df['_create_date'] = cmn.now()
 #   df.to_sql(name=params['table_name'],con=engine,schema='lnd',if_exists='append',index=False)
 
-def check_db_column(df,table_name):
+def check_db_column(df, table_name):
     cur = conn.cursor()
+
+    # check if table exists
+    sql_tbl = "SELECT 1 " \
+              "  FROM information_schema.tables " \
+              " WHERE table_schema = 'lnd' " \
+              "   AND table_name = '{tbl}' ".format(tbl=table_name)
+    cur.execute(sql_tbl)
+    if cur.rowcount == 0:
+        log.debug('this is a new table {tbl}. No need to check columns'.format(tbl=table_name))
+        return
+
     sql = "SELECT column_name " \
           "  FROM information_schema.columns " \
           " WHERE table_schema = 'lnd' " \
@@ -191,15 +202,16 @@ def check_db_column(df,table_name):
     db_cols = [row[0] for row in cur]
     for df_col in df.columns:
         if df_col not in db_cols:
-            log.warning('new column {0} found in NBA stats that doesn''t exists in landing table {1}'.format(df_col,table_name))
+            log.warning('new column {0} found in NBA stats that doesn''t exists in landing table {1}'.format(df_col,
+                                                                                                             table_name))
             log.warning('attempting to add that column to database')
             df_data_type = str(df[df_col].dtype)
-            if df_data_type == 'int64': 
+            if df_data_type == 'int64':
                 data_type = 'integer'
             elif df_data_type == 'float64':
                 data_type = 'float'
 
-            alter_sql = " ALTER TABLE lnd.{0} ADD COLUMN {1} {2} ".format(table_name,df_col,data_type)
+            alter_sql = " ALTER TABLE lnd.{0} ADD COLUMN {1} {2} ".format(table_name, df_col, data_type)
             log.warning(alter_sql)
             cur.execute(alter_sql)
             conn.commit()
@@ -313,9 +325,9 @@ valid_seasons = ['2016-17', '2015-16', '2014-15', '2013-14', '2012-13', '2011-12
 current_season = '2016-17'
 
 nba_home = os.path.dirname(__file__)
-data_folder = os.path.join(nba_home,'data') 
-log_folder = os.path.join(nba_home,'log') 
-log_file = os.path.join(log_folder,'nba_daily.log')
+data_folder = os.path.join(nba_home, 'data')
+log_folder = os.path.join(nba_home, 'log')
+log_file = os.path.join(log_folder, 'nba_daily.log')
 
 # Database
 # ==============================================================================
