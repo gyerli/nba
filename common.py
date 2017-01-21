@@ -54,7 +54,9 @@ class reg(object):
 
 
 def start_run():
-    param_str = "season:{s};season_type:{st};measure:{m}".format(s=g_season, st=g_season_type, m=g_measure)
+    param_str = "season:{s};season_type:{st};news:{news];roster:{rst};measure:{m};players:{pl}".format(s=g_season, st=g_season_type,
+                                                                                          m=g_measure, news=g_news,
+                                                                                          rst=g_roster, pl=g_players)
 
     try:
         cur = conn.cursor()
@@ -369,3 +371,6 @@ global g_season_start_date
 global g_season_end_date
 global g_run_id
 global g_measure
+global g_news
+global g_roster
+global g_players

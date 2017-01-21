@@ -556,6 +556,9 @@ def main():
     global g_debug
     global g_schedule
     global g_measure
+    global g_news
+    global g_roster
+    global g_players
 
     parser = argparse.ArgumentParser(description='Executes job and job details')
     parser.add_argument('-s', '--season', help='NBA season (e.g. 2014-15)', required=False, default=c.current_season)
@@ -573,6 +576,9 @@ def main():
     g_debug = args['debug']
     g_schedule = args['schedule']
     g_measure = args['measure']
+    g_news = args['news']
+    g_roster = args['roster']
+    g_players = args['players']
 
     if args['season_type'] == 'P':
         g_season_type = _constants.SeasonType.Playoffs
@@ -581,19 +587,10 @@ def main():
 
     c.g_season = g_season
     c.g_season_type = g_season_type
-
-    if args['news']:
-        c.log.info('getting player rotowire news and exiting')
-        get_player_news()
-        sys.exit(0)
-
     c.g_measure = g_measure
-
-    if args['measure'] is not None:
-        c.log.info('processing a single measure'.center(80, '*'))
-        c.log.info('measure:{m}'.format(m=args['measure']))
-        process_single_measure(args['measure'])
-        sys.exit(0)
+    c.g_news = g_news
+    c.g_roster = g_roster
+    c.g_players = g_players
 
     dt = c.get_season_dates()
 
@@ -619,6 +616,19 @@ def main():
 
     if args['players']:
         refresh_players()
+        c.end_run(g_run_id, 'COMPLETED')
+        sys.exit(0)
+
+    if args['news']:
+        c.log.info('getting player rotowire news and exiting')
+        get_player_news()
+        c.end_run(g_run_id, 'COMPLETED')
+        sys.exit(0)
+
+    if args['measure'] is not None:
+        c.log.info('processing a single measure'.center(80, '*'))
+        c.log.info('measure:{m}'.format(m=args['measure']))
+        process_single_measure(args['measure'])
         c.end_run(g_run_id, 'COMPLETED')
         sys.exit(0)
 
