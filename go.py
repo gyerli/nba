@@ -544,6 +544,7 @@ def process_player_single_measure(p_measure):
                       p_table_name=_table_name, p_type=_measure_type, p_category=_measure_category)
         if cnt >= thread_count:
             pool.wait_completion()
+            cnt = 0
 
         cnt += 1
 
