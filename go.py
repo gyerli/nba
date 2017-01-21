@@ -456,6 +456,7 @@ def process_player_measures(p_player_id, p_team_id, p_endpoint, p_measure, p_tab
 
 def process_player(player_id, team_id):
     player_name = get_player_name(player_id)
+
     c.start_log(run_id=g_run_id, node='player', node_name=player_name, node_key=player_id,
                 parent_key=team_id, node_status='IN PROGRESS')
     _measures = c.get_measures('player')
@@ -555,6 +556,7 @@ def main():
     global g_run_id
     global g_debug
     global g_schedule
+    global g_measure
 
     parser = argparse.ArgumentParser(description='Executes job and job details')
     parser.add_argument('-s', '--season', help='NBA season (e.g. 2014-15)', required=False, default=c.current_season)
@@ -564,13 +566,14 @@ def main():
     parser.add_argument('-p', '--players', help='Refresh player list', action='store_true')
     parser.add_argument('-d', '--debug', help='Debugging flag', action='store_true')
     parser.add_argument('-n', '--news', help='Get NBA fantasy news only', action='store_true')
-    parser.add_argument('-m', '--measure', help='Measure in the node table (table_name)', required=True)
+    parser.add_argument('-m', '--measure', help='Measure in the node table (table_name)', required=False)
 
     args = vars(parser.parse_args())
 
     g_season = args['season']
     g_debug = args['debug']
     g_schedule = args['schedule']
+    g_measure = args['measure']
 
     if args['season_type'] == 'P':
         g_season_type = _constants.SeasonType.Playoffs
