@@ -525,6 +525,9 @@ def process_player_single_measure(p_measure):
     _available_year = p_measure[5]
     _table_name = p_measure[6]
 
+    thread_count = 30
+    pool = c.ThreadPool(thread_count)
+
     d_sql = "SELECT DISTINCT player_id " \
             "  FROM lnd.game_player_stats  " \
             " WHERE _season = '{s}'".format(s=g_season)
@@ -533,11 +536,16 @@ def process_player_single_measure(p_measure):
     d_cur = c.conn.cursor()
     d_cur.execute(d_sql)
     players = d_cur.fetchall()
+    cnt = 1
     for player in players:
         team_id = find_player_team_season(player_id=player[0], season=g_season)
-        process_player_measures(p_player_id=player[0], p_team_id=team_id, p_endpoint=_endpoint,
-                                p_measure=_measure,
-                                p_table_name=_table_name, p_type=_measure_type, p_category=_measure_category)
+        pool.add_task(process_player_measures, p_player_id=player[0], p_team_id=team_id, p_endpoint=_endpoint,
+                      p_measure=_measure,
+                      p_table_name=_table_name, p_type=_measure_type, p_category=_measure_category)
+        if cnt >= thread_count:
+            pool.wait_completion()
+
+        cnt += 1
 
 ####################################################################################
 # M A I N  M O D U L E

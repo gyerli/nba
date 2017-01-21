@@ -54,9 +54,12 @@ class reg(object):
 
 
 def start_run():
-    param_str = "season:{s};season_type:{st};news:{news};roster:{rst};measure:{m};players:{pl}".format(s=g_season, st=g_season_type,
-                                                                                          m=g_measure, news=g_news,
-                                                                                          rst=g_roster, pl=g_players)
+    param_str = "season:{s};season_type:{st};news:{news};roster:{rst};measure:{m};players:{pl}".format(s=g_season,
+                                                                                                       st=g_season_type,
+                                                                                                       m=g_measure,
+                                                                                                       news=g_news,
+                                                                                                       rst=g_roster,
+                                                                                                       pl=g_players)
 
     try:
         cur = conn.cursor()
