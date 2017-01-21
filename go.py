@@ -444,7 +444,6 @@ def process_player_measures(p_player_id, p_team_id, p_endpoint, p_measure, p_tab
             endpoint = getattr(_player, p_endpoint)(player_id=p_player_id, season=g_season, season_type=g_season_type,
                                                     measure_type=p_type)
         df = getattr(endpoint, p_measure)()
-        print df
         p_params = {'player_id': p_player_id, 'team_id': p_team_id, 'table_name': p_table_name}
         c.p_to_sql(df, p_params)
 
@@ -587,6 +586,8 @@ def main():
         c.log.info('getting player rotowire news and exiting')
         get_player_news()
         sys.exit(0)
+
+    c.g_measure = g_measure
 
     if args['measure'] is not None:
         c.log.info('processing a single measure'.center(80, '*'))
