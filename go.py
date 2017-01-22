@@ -515,6 +515,36 @@ def process_single_measure(p_measure):
     if measure[0] == 'player':
         process_player_single_measure(p_measure=measure)
 
+    if measure[0] == 'team':
+        process_team_single_measure(p_measure=measure)
+
+    sql = 'REFRESH MATERIALIZED VIEW lnd.mvw_{m}'.format(p_measure)
+    cur = c.conn.cursor()
+    cur.execute(sql)
+    c.conn.commit()
+
+
+def process_team_single_measure(p_measure):
+    _node = p_measure[0]
+    _endpoint = p_measure[1]
+    _measure = p_measure[2]
+    _measure_type = p_measure[3]
+    _measure_category = p_measure[4]
+    _available_year = p_measure[5]
+    _table_name = p_measure[6]
+
+    t_sql = "SELECT DISTINCT team_id FROM lnd.team"
+    t_cur = c.conn.cursor()
+    t_cur.execute(t_sql)
+    teams = t_cur.fetchall()
+    pool = c.ThreadPool(t_cur.rowcount)
+    for team in teams:
+        team_id = team[0]
+        pool.add_task(process_team_measures, p_team_id=team_id, p_endpoint=_endpoint, p_measure=_measure,
+                      p_table_name=_table_name, p_type=_measure_type)
+
+    pool.wait_completion()
+
 
 def process_player_single_measure(p_measure):
     _node = p_measure[0]
@@ -548,6 +578,7 @@ def process_player_single_measure(p_measure):
         cnt += 1
 
     pool.wait_completion()
+
 
 ####################################################################################
 # M A I N  M O D U L E
