@@ -1,4 +1,5 @@
 DROP MATERIALIZED VIEW rpt.mvw_player_time;
+REFRESH MATERIALIZED VIEW rpt.mvw_player_time;
 CREATE MATERIALIZED VIEW rpt.mvw_player_time
 AS
 SELECT *
@@ -16,26 +17,27 @@ AS
 	,sum(a.pos_time_per_game) OVER (PARTITION BY a.season, a.team_id, a.pos ORDER BY a.game_date ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING) pos_time_last_5_games
 	,sum(a.pos_time_per_game) OVER (PARTITION BY a.season, a.team_id, a.pos ORDER BY a.game_date ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) pos_time_last_10_games
 FROM (SELECT 
-		gp.season
-		,gp.team_id
-		,gp.team_abbreviation
+		ps.season
+		,ps.team_id
+		,ps.team_abbreviation
 		,p.pos
-		,gp.game_date
+		,ps.game_date
 		,COALESCE(sum(gp.seconds),0) pos_time_per_game
-	  FROM rpt.fct_game_player gp
-	    JOIN rpt.dim_player p ON gp.dim_player_guid = p.dim_player_guid
+	  FROM rpt.dim_player_schedule ps
+	  	LEFT JOIN rpt.fct_game_player gp ON ps.game_id = gp.game_id AND ps.player_id = gp.player_id
+	    JOIN rpt.dim_player p ON ps.player_id = p.id AND p.is_rec_active = TRUE 
 	WHERE trim(p.pos) <> '' 
 	GROUP BY 	
-		gp.season
-		,gp.team_id
-		,gp.team_abbreviation
+		ps.season
+		,ps.team_id
+		,ps.team_abbreviation
 		,p.pos
-		,gp.game_date
+		,ps.game_date
 	ORDER BY 
-		gp.season
-		,gp.team_abbreviation
+		ps.season
+		,ps.team_abbreviation
 		,p.pos
-		,gp.game_date
+		,ps.game_date
 	) a
 )	
 ,
@@ -46,7 +48,7 @@ AS
 	,n.firstname || ' ' || n.lastname display_first_last
 	,to_timestamp(n.date::numeric) tm 
 	,to_timestamp(n.date::numeric)::date dt
-	,row_number() OVER (PARTITION BY playerid, to_timestamp(n.date::numeric)::date ORDER BY n.priority) rn
+	,row_number() OVER (PARTITION BY playerid ORDER BY to_timestamp(n.date::numeric) DESC, n.priority) rn
 	,n.priority
 	,n.headline
 	,n.injured
@@ -72,7 +74,9 @@ SELECT
 	,gp.seconds player_time
 	,sum(gp.seconds) OVER (PARTITION BY ps.season, ps.team_id, p.pos, ps.player_id ORDER BY ps.game_date ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING) player_time_last_5_games
 	,sum(gp.seconds) OVER (PARTITION BY ps.season, ps.team_id, p.pos, ps.player_id ORDER BY ps.game_date ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) player_time_last_10_games
-	,tpt.pos_time_per_game
+	,avg(gp.seconds) OVER (PARTITION BY ps.season, ps.team_id, p.pos, ps.player_id ORDER BY ps.game_date ROWS BETWEEN 5 PRECEDING AND 1 PRECEDING) avg_player_time_last_5_games
+	,avg(gp.seconds) OVER (PARTITION BY ps.season, ps.team_id, p.pos, ps.player_id ORDER BY ps.game_date ROWS BETWEEN 10 PRECEDING AND 1 PRECEDING) avg_player_time_last_10_games
+	,tpt.pos_time_per_game pos_time
 	,tpt.pos_time_last_5_games
 	,tpt.pos_time_last_10_games
 	,CASE 
@@ -103,7 +107,7 @@ SELECT
   FROM rpt.dim_player_schedule ps
     JOIN rpt.dim_player p ON ps.player_id = p.id AND p.is_rec_active = TRUE
     LEFT JOIN rpt.fct_game_player gp ON ps.player_id = gp.player_id AND ps.game_id = gp.game_id
-    LEFT JOIN player_news pn ON ps.player_id = pn.player_id AND ps.game_date = pn.dt AND pn.rn = 1
+    LEFT JOIN player_news pn ON ps.player_id = pn.player_id AND pn.rn = 1
     LEFT JOIN team_pos_time tpt ON ps.season = tpt.season AND ps.team_id = tpt.team_id AND ps.game_date = tpt.game_date AND p.pos = tpt.pos
 WHERE 1=1
 --  AND ps.season = '2016-17'
