@@ -310,6 +310,9 @@ def refresh_rpt_mviews():
         cur.execute('SELECT rpt.refresh_dim_player_schedule()')
         log.info('dim_player_schedule =>{0}'.format(cur.fetchone()[0]))
 
+        cur.execute('REFRESH MATERIALIZED VIEW rpt.mvw_player_time')
+        cur.execute('REFRESH MATERIALIZED VIEW rpt.mvw_player_latest_news')
+
         conn.commit()
     except Exception, e:
         log.error('error refreshing RPT objects')
