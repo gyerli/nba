@@ -215,7 +215,8 @@ def check_db_column(df, table_name):
                 data_type = 'integer'
             elif df_data_type == 'float64':
                 data_type = 'float'
-
+            else:
+                data_type = 'varchar'
             alter_sql = " ALTER TABLE lnd.{0} ADD COLUMN {1} {2} ".format(table_name, df_col, data_type)
             log.warning(alter_sql)
             cur.execute(alter_sql)

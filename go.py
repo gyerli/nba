@@ -132,7 +132,7 @@ def update_schedule():
           "  MIN(to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD')) " \
           "FROM lnd.mvw_schedule_game_header " \
           "WHERE to_date(split_part(game_date_est, 'T', 1), 'YYYY-MM-DD') < date(now()) " \
-          "  AND game_status_text <> 'Final' " \
+          "  AND game_status_text NOT IN ('Final','PPD') " \
           "  AND _season = '{0}' " \
           "  AND _season_type = '{1}' ".format(g_season, g_season_type)
 
@@ -622,6 +622,8 @@ def main():
     g_roster = args['roster']
     g_players = args['players']
 
+    c.log.info("URL: {u}".format(u=nba_py.BASE_URL))
+    
     if args['season_type'] == 'P':
         g_season_type = _constants.SeasonType.Playoffs
     else:

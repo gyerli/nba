@@ -6,11 +6,11 @@ backup_dir="/home/ec2-user/work/nba/backup/"
 backup_date=`date +%Y%m%d`
 #Numbers of days you want to keep copie of your databases
 number_of_days=5
-databases="nba"
+databases="nba_restore"
 for i in $databases; do
   if [ "$i" != "template0" ] && [ "$i" != "template1" ]; then
     echo Dumping $i to $backup_dir$i\_$backup_date.dmp
     pg_dump -U postgres -Fc $i > $backup_dir$i\_$backup_date.dmp
   fi
 done
-find $backup_dir -type f -prune -mtime +$number_of_days -exec rm -f {} \;
+# find $backup_dir -type f -prune -mtime +$number_of_days -exec rm -f {} \;
