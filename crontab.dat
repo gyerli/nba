@@ -1,0 +1,7 @@
+*/15	12-22	*	*	*	/home/ec2-user/work/nba/go.py -n >/dev/null 2>&1
+00	1	*	*	*	/home/ec2-user/work/nba/go.py >/dev/null 2>&1
+00	5	*	*	*	/usr/bin/psql -U postgres -d nba -c 'VACUUM (FULL,ANALYZE)' >/dev/null 2>&1
+30	5	*	*	*	/home/ec2-user/work/nba/backup.sh >/dev/null 2>&1
+00 	6 	* 	* 	SUN	/home/ec2-user/work/nba/go.py -r >/dev/null 2>&1
+#29	08	*	*	*	cd /home/ec2-user/work/git_test1 && git checkout master && ls -l /home/ec2-user/work/git_test1 > /home/ec2-user/list.txt
+57	07	30	3	*	/home/ec2-user/work/nba/go.py >/dev/null 2>&1
